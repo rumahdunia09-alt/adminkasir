@@ -3,116 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IKAMAPUSAT - Pro POS v14</title>
+    <title>IKAMAPUSAT - Universal POS v15</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --sidebar-w: 240px; --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; }
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        :root { --sidebar-w: 240px; --primary: #2c3e50; --accent: #3498db; --bg: #f4f7f6; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { margin: 0; background: var(--bg); display: flex; }
         
-        /* Login Page */
-        #loginPage { position: fixed; inset: 0; background: #2c3e50; display: flex; align-items: center; justify-content: center; z-index: 10000; }
-        .login-card { background: white; padding: 40px; border-radius: 15px; width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        
-        /* Sidebar & Layout */
-        #sidebar { width: var(--sidebar-w); background: var(--primary); height: 100vh; color: white; position: fixed; display: none; }
-        #main { margin-left: var(--sidebar-w); width: calc(100% - var(--sidebar-w)); display: none; min-height: 100vh; }
-        
-        .nav-item { padding: 15px 25px; cursor: pointer; display: flex; align-items: center; gap: 15px; color: #bdc3c7; transition: 0.3s; }
+        /* Sidebar */
+        #sidebar { width: var(--sidebar-w); background: var(--primary); height: 100vh; color: white; position: fixed; display: none; z-index: 100; }
+        .nav-item { padding: 15px 25px; cursor: pointer; display: flex; align-items: center; gap: 15px; color: #bdc3c7; }
         .nav-item:hover, .nav-item.active { background: var(--accent); color: white; }
-        
+
+        /* Main Content */
+        #main { margin-left: var(--sidebar-w); width: calc(100% - var(--sidebar-w)); display: none; min-height: 100vh; }
         header { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .content { padding: 25px; }
         .page { display: none; }
         .page.active { display: block; }
 
-        /* UI Elements */
+        /* UI */
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         input, select, button { padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; width: 100%; }
         button { background: var(--accent); color: white; border: none; font-weight: bold; cursor: pointer; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-        .admin-only { display: none; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        
+        #loginPage { position: fixed; inset: 0; background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-card { background: white; padding: 40px; border-radius: 15px; width: 350px; text-align: center; }
     </style>
 </head>
 <body>
 
     <div id="loginPage">
         <div class="login-card">
-            <h2 style="margin-top:0">IKAMAPUSAT</h2>
-            <p style="font-size: 12px; color: #666;">Silakan masuk ke akun Anda</p>
+            <h2>IKAMAPUSAT</h2>
             <input type="text" id="username" placeholder="Username">
             <input type="password" id="password" placeholder="Password">
-            <button onclick="doLogin()" id="btnLogin">MASUK SEKARANG</button>
-            <div id="loginMsg" style="color: red; font-size: 12px; margin-top: 10px;"></div>
+            <button onclick="doLogin()">LOGIN</button>
+            <p id="msg" style="color:red; font-size:12px"></p>
         </div>
     </div>
 
     <div id="sidebar">
-        <div style="padding: 25px; font-weight: bold; font-size: 18px; border-bottom: 1px solid #34495e;">POS SYSTEM</div>
-        <nav style="margin-top: 20px;">
-            <div class="nav-item active" onclick="showPage('dash', this)"><i class="fas fa-chart-line"></i> Dashboard</div>
-            <div class="nav-item" onclick="showPage('kasir', this)"><i class="fas fa-shopping-cart"></i> Kasir</div>
-            <div class="nav-item admin-only" onclick="showPage('master', this)"><i class="fas fa-box"></i> Master Barang</div>
-            <div class="nav-item" onclick="showPage('laporan', this)"><i class="fas fa-history"></i> Riwayat</div>
-            <div class="nav-item admin-only" onclick="showPage('users', this)"><i class="fas fa-user-cog"></i> Pengguna</div>
+        <div style="padding:25px; font-weight:bold; border-bottom:1px solid #34495e;">ADMIN PANEL</div>
+        <nav>
+            <div class="nav-item active" onclick="showPage('dash', this)"><i class="fas fa-home"></i> Dashboard</div>
+            <div class="nav-item" onclick="showPage('kasir', this)"><i class="fas fa-cash-register"></i> Kasir</div>
+            <div class="nav-item" onclick="showPage('master', this)"><i class="fas fa-box"></i> Master Barang</div>
+            <div class="nav-item" onclick="showPage('riwayat', this)"><i class="fas fa-history"></i> Riwayat Transaksi</div>
         </nav>
     </div>
 
     <div id="main">
         <header>
-            <div id="titlePage" style="font-weight: bold; color: var(--primary);">DASHBOARD</div>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <span id="userStatus" style="font-size: 14px; font-weight: bold;"></span>
-                <button onclick="location.reload()" style="width: auto; background: #e74c3c; padding: 5px 15px;">Keluar</button>
-            </div>
+            <div id="titlePage" style="font-weight:bold">DASHBOARD</div>
+            <button onclick="location.reload()" style="width:auto; background:#e74c3c">Keluar</button>
         </header>
-
         <div class="content">
             <div id="dashPage" class="page active">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-                    <div class="card" style="background: #3498db; color: white;">Omzet Hari Ini<h2 id="dashOmzet">Rp 0</h2></div>
-                    <div class="card" style="background: #2ecc71; color: white;">Profit Hari Ini<h2 id="dashProfit">Rp 0</h2></div>
-                    <div class="card" style="background: #f1c40f; color: white;">Transaksi<h2 id="dashTrx">0</h2></div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px">
+                    <div class="card" style="background:#3498db; color:white">Total Barang <h2 id="stokCount">0</h2></div>
+                    <div class="card" style="background:#2ecc71; color:white">Transaksi Hari Ini <h2 id="trxCount">0</h2></div>
                 </div>
             </div>
 
             <div id="kasirPage" class="page">
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-                    <div class="card">
-                        <input type="text" id="scanKasir" placeholder="Scan Barcode atau Ketik Nama Barang..." onkeypress="handleScan(event)">
-                        <table>
-                            <thead><tr><th>Produk</th><th>Qty</th><th>Subtotal</th></tr></thead>
-                            <tbody id="bodyKeranjang"></tbody>
-                        </table>
-                    </div>
-                    <div class="card">
-                        <h2 id="total" style="color: var(--accent); margin-top: 0;">Rp 0</h2>
-                        <select id="metode"><option>Tunai</option><option>QRIS/DANA</option></select>
-                        <input type="number" id="bayar" placeholder="Uang Bayar" oninput="hitungKemb()">
-                        <h3 id="kembali" style="color: #e74c3c;">Kembali: 0</h3>
-                        <button style="background: #2ecc71; padding: 15px;" onclick="prosesJual()">SIMPAN & CETAK</button>
-                    </div>
+                <div class="card">
+                    <input type="text" id="scanKasir" placeholder="Scan/Cari Barang..." onkeypress="handleScan(event)">
+                    <table id="cartTable">
+                        <thead><tr><th>Produk</th><th>Qty</th><th>Subtotal</th></tr></thead>
+                        <tbody id="cartBody"></tbody>
+                    </table>
+                    <h2 id="totalBayar">Total: Rp 0</h2>
+                    <button onclick="bayarSekarang()" style="background:#2ecc71">PROSES BAYAR</button>
                 </div>
             </div>
 
-            <div id="usersPage" class="page">
+            <div id="masterPage" class="page">
                 <div class="card">
-                    <h3>Tambah User Baru</h3>
-                    <input type="text" id="uNama" placeholder="Nama Lengkap">
-                    <input type="text" id="uUser" placeholder="Username">
-                    <input type="text" id="uPass" placeholder="Password">
-                    <select id="uRole"><option value="kasir">Kasir</option><option value="admin">Admin</option></select>
-                    <button onclick="tambahUser()">SIMPAN USER</button>
+                    <h3>Tambah Barang</h3>
+                    <input type="text" id="m_kode" placeholder="Barcode">
+                    <input type="text" id="m_nama" placeholder="Nama Barang">
+                    <input type="number" id="m_harga" placeholder="Harga Jual">
+                    <input type="number" id="m_stok" placeholder="Stok">
+                    <button onclick="simpanBarang()">SIMPAN KE DATABASE</button>
                 </div>
                 <div class="card">
-                    <table><thead><tr><th>Nama</th><th>Role</th><th>Aksi</th></tr></thead><tbody id="listUsers"></tbody></table>
+                    <table id="masterTable">
+                        <thead><tr><th>Kode</th><th>Nama</th><th>Harga</th><th>Stok</th></tr></thead>
+                        <tbody id="masterBody"></tbody>
+                    </table>
                 </div>
             </div>
-            
+
+            <div id="riwayatPage" class="page">
+                <div class="card">
+                    <h3>Riwayat Transaksi</h3>
+                    <table id="riwayatTable">
+                        <thead><tr><th>Waktu</th><th>Total</th><th>Kasir</th></tr></thead>
+                        <tbody id="riwayatBody"></tbody>
+                    </table>
+                </div>
             </div>
+        </div>
     </div>
 
     <script>
@@ -127,45 +123,33 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        
-        let dbUsers = [];
-        let dbBarang = [];
-        let dbRiwayat = [];
+
+        let dataBarang = [];
+        let dataRiwayat = [];
         let keranjang = [];
 
-        // LOAD USERS FROM FIREBASE
-        db.ref('v14_users').on('value', snap => {
-            dbUsers = snap.val() || [];
+        // LOAD DATA - Mengacu pada folder v13 agar data lama muncul
+        db.ref('v13_barang').on('value', snap => {
+            dataBarang = snap.val() || [];
+            renderMaster();
+            document.getElementById('stokCount').innerText = dataBarang.length;
+        });
+
+        db.ref('v13_riwayat').on('value', snap => {
+            dataRiwayat = snap.val() || [];
+            renderRiwayat();
+            document.getElementById('trxCount').innerText = dataRiwayat.length;
         });
 
         function doLogin() {
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
-            const msg = document.getElementById('loginMsg');
-
-            // 1. CEK KUNCI DARURAT (Selalu Aktif)
-            if (u === 'admin' && p === '123') {
-                loginSuccess({nama: 'Super Admin', role: 'admin'});
-                return;
-            }
-
-            // 2. CEK DATABASE FIREBASE
-            const user = dbUsers.find(x => x.user === u && x.pass === p);
-            if (user) {
-                loginSuccess(user);
+            if(u === 'admin' && p === '123') {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('sidebar').style.display = 'block';
+                document.getElementById('main').style.display = 'block';
             } else {
-                msg.innerText = "Username atau Password Salah!";
-            }
-        }
-
-        function loginSuccess(user) {
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('sidebar').style.display = 'block';
-            document.getElementById('main').style.display = 'block';
-            document.getElementById('userStatus').innerText = user.nama;
-            
-            if (user.role === 'admin') {
-                document.querySelectorAll('.admin-only').forEach(e => e.style.display = 'flex');
+                document.getElementById('msg').innerText = "Login Gagal! Gunakan admin / 123";
             }
         }
 
@@ -174,49 +158,64 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(id + 'Page').classList.add('active');
             el.classList.add('active');
-            document.getElementById('titlePage').innerText = id.toUpperCase();
         }
 
-        // --- KASIR LOGIC ---
-        db.ref('v14_barang').on('value', snap => { dbBarang = snap.val() || []; });
-        
+        function renderMaster() {
+            const body = document.getElementById('masterBody');
+            body.innerHTML = '';
+            dataBarang.forEach(b => {
+                body.innerHTML += `<tr><td>${b.kode}</td><td>${b.nama}</td><td>${b.harga}</td><td>${b.stok}</td></tr>`;
+            });
+        }
+
+        function renderRiwayat() {
+            const body = document.getElementById('riwayatBody');
+            body.innerHTML = '';
+            dataRiwayat.forEach(r => {
+                body.innerHTML += `<tr><td>${r.waktu}</td><td>Rp ${r.total.toLocaleString()}</td><td>${r.kasir || 'Admin'}</td></tr>`;
+            });
+        }
+
         function handleScan(e) {
             if(e.key === 'Enter') {
-                const b = dbBarang.find(x => x.kode === scanKasir.value || x.nama.toLowerCase().includes(scanKasir.value.toLowerCase()));
-                if(b && b.stok > 0) {
-                    const ada = keranjang.find(k => k.kode === b.kode);
-                    if(ada) ada.qty++; else keranjang.push({...b, qty: 1});
-                    renderKeranjang();
+                const b = dataBarang.find(x => x.kode === scanKasir.value);
+                if(b) {
+                    keranjang.push({...b, qty:1});
+                    renderCart();
                 }
                 scanKasir.value = '';
             }
         }
 
-        function renderKeranjang() {
-            bodyKeranjang.innerHTML = ''; let t = 0;
-            keranjang.forEach((k, i) => {
+        function renderCart() {
+            const body = document.getElementById('cartBody');
+            body.innerHTML = ''; let t = 0;
+            keranjang.forEach(k => {
                 let sub = k.qty * k.harga; t += sub;
-                bodyKeranjang.innerHTML += `<tr><td>${k.nama}</td><td>${k.qty}</td><td>Rp ${sub.toLocaleString()}</td></tr>`;
+                body.innerHTML += `<tr><td>${k.nama}</td><td>${k.qty}</td><td>${sub}</td></tr>`;
             });
-            total.innerText = "Rp " + t.toLocaleString();
+            document.getElementById('totalBayar').innerText = "Total: Rp " + t.toLocaleString();
         }
 
-        function hitungKemb() {
-            const t = parseInt(total.innerText.replace(/\D/g,''));
-            const b = parseInt(bayar.value) || 0;
-            kembali.innerText = "Kembali: Rp " + (b - t).toLocaleString();
-        }
-
-        function tambahUser() {
-            const newUser = {
-                nama: document.getElementById('uNama').value,
-                user: document.getElementById('uUser').value,
-                pass: document.getElementById('uPass').value,
-                role: document.getElementById('uRole').value
+        function simpanBarang() {
+            const b = {
+                kode: document.getElementById('m_kode').value,
+                nama: document.getElementById('m_nama').value,
+                harga: parseInt(document.getElementById('m_harga').value),
+                stok: parseInt(document.getElementById('m_stok').value)
             };
-            dbUsers.push(newUser);
-            db.ref('v14_users').set(dbUsers);
-            alert("User Berhasil Disimpan!");
+            dataBarang.push(b);
+            db.ref('v13_barang').set(dataBarang);
+            alert("Barang Disimpan!");
+        }
+
+        function bayarSekarang() {
+            const total = parseInt(document.getElementById('totalBayar').innerText.replace(/\D/g,''));
+            const trx = { waktu: new Date().toLocaleString(), total: total, kasir: 'Admin' };
+            dataRiwayat.unshift(trx);
+            db.ref('v13_riwayat').set(dataRiwayat);
+            alert("Pembayaran Berhasil!");
+            keranjang = []; renderCart();
         }
     </script>
 </body>
