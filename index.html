@@ -214,4 +214,25 @@
                 let sub = k.qty * k.harga; t += sub;
                 cartBody.innerHTML += `<tr><td>${k.nama}</td><td>${k.qty}</td><td>${sub}</td></tr>`;
             });
-            totalHarga
+            totalHarga.innerText = "Total: Rp " + t.toLocaleString();
+        }
+
+        function prosesBayar() {
+            const total = parseInt(totalHarga.innerText.replace(/\D/g,''));
+            if(total === 0) return;
+            const trx = { waktu: new Date().toLocaleString(), total: total };
+            listRiwayat.unshift(trx);
+            db.ref('v13_riwayat').set(listRiwayat);
+            alert("Berhasil!"); keranjang = []; renderCart();
+        }
+
+        function tambahBarang() {
+            const b = { kode: m_kode.value, nama: m_nama.value, harga: parseInt(m_harga.value), stok: parseInt(m_stok.value) };
+            listBarang.push(b);
+            db.ref('v13_barang').set(listBarang);
+            alert("Tersimpan!");
+            m_kode.value = ''; m_nama.value = ''; m_harga.value = ''; m_stok.value = '';
+        }
+    </script>
+</body>
+</html>
