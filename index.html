@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IKAMAPUSAT - Kasir Pro v10</title>
-    
+    <title>IKAMAPUSAT - Kasir Pro v11 (Bulk Import)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
     <style>
         :root { --p: #007bff; --s: #28a745; --d: #dc3545; --g: #6c757d; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
@@ -24,32 +22,24 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
         th { background: #fafafa; }
-        .footer-license { text-align: center; padding: 20px; font-size: 12px; color: #7f8c8d; border-top: 1px solid #eee; background: #fff; }
-        .qty-input { width: 60px !important; padding: 5px !important; text-align: center; }
         .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; background: #eee; color: #666; }
+        .import-box { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 2px dashed #ccc; }
     </style>
 </head>
 <body>
 
     <div id="loginPage" style="max-width: 400px; margin: 80px auto;" class="card">
-        <img src="logo.png" class="login-logo" style="display:block; margin:0 auto 15px; height:80px;" onerror="this.style.display='none'">
+        <img src="logo.png" style="display:block; margin:0 auto 15px; height:80px;" onerror="this.style.display='none'">
         <h2 style="text-align:center; margin-top:0">IKAMAPUSAT LOGIN</h2>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
         <button onclick="doLogin()">MASUK</button>
-        <p style="text-align: center; font-size: 10px; color: #999; margin-top: 15px;">By: Duniatanpaspasi-2026</p>
     </div>
 
     <div id="appContainer" style="display:none;">
         <div class="navbar">
-            <div class="nav-brand">
-                <img src="logo.png" class="logo-img" onerror="this.style.display='none'">
-                <h3 style="margin:0">IKAMAPUSAT CLOUD</h3>
-            </div>
-            <div>
-                <span id="displayUser" style="margin-right:15px; font-weight:bold"></span>
-                <button class="btn-d" style="width:auto; padding:8px 15px" onclick="location.reload()">Keluar</button>
-            </div>
+            <div class="nav-brand"><img src="logo.png" class="logo-img" onerror="this.style.display='none'"><h3>IKAMAPUSAT CLOUD</h3></div>
+            <div><span id="displayUser" style="margin-right:15px; font-weight:bold"></span><button class="btn-d" style="width:auto; padding:8px 15px" onclick="location.reload()">Keluar</button></div>
         </div>
 
         <div class="container">
@@ -77,38 +67,35 @@
                 <div class="card">
                     <h3>Laporan Penjualan</h3>
                     <div style="display:flex; gap:5px;"><input type="date" id="filterTanggal"><button class="btn-g" style="width:auto" onclick="renderRiwayat()">Cari</button></div>
-                    <div style="max-height: 400px; overflow-y: auto;">
-                        <table>
-                            <thead><tr><th>Waktu</th><th>Total</th><th>Aksi</th></tr></thead>
-                            <tbody id="bodyRiwayat"></tbody>
-                        </table>
-                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;"><table><thead><tr><th>Waktu</th><th>Total</th><th>Aksi</th></tr></thead><tbody id="bodyRiwayat"></tbody></table></div>
                 </div>
             </div>
 
             <div id="adminPanel" class="card" style="display:none">
-                <h3>Master Barang (Kategori & Satuan)</h3>
+                <h3>Master Barang & Import Massal</h3>
+                <div class="import-box">
+                    <small><strong>Import dari Excel (CSV):</strong> Format kolom: Kode, Nama, Kategori, Satuan, Modal, Harga, Stok</small>
+                    <input type="file" id="csvFile" accept=".csv">
+                    <button class="btn-g" onclick="importCSV()">IMPORT DATA MASSAL</button>
+                </div>
                 <div class="grid">
                     <div>
                         <input type="text" id="m_kode" placeholder="Barcode">
                         <input type="text" id="m_nama" placeholder="Nama Barang">
-                        <select id="m_kat"><option value="Umum">Pilih Kategori</option><option value="Makanan">Makanan</option><option value="Minuman">Minuman</option><option value="Sembako">Sembako</option><option value="Lainnya">Lainnya</option></select>
+                        <select id="m_kat"><option value="Umum">Pilih Kategori</option><option value="Makanan">Makanan</option><option value="Minuman">Minuman</option><option value="Sembako">Sembako</option></select>
                         <select id="m_satuan"><option value="pcs">Pcs</option><option value="kg">Kg</option><option value="ltr">Ltr</option><option value="dus">Dus</option></select>
                         <input type="number" id="m_modal" placeholder="Harga Modal">
                         <input type="number" id="m_harga" placeholder="Harga Jual">
                         <input type="number" id="m_stok" placeholder="Stok">
-                        <button class="btn-s" onclick="tambahBarang()">SIMPAN BARANG</button>
+                        <button class="btn-s" onclick="tambahBarang()">SIMPAN MANUAL</button>
                     </div>
                     <div style="max-height: 400px; overflow-y: auto;">
-                        <table>
-                            <thead><tr><th>Nama/Kategori</th><th>Satuan</th><th>Harga</th><th>Stok</th><th>X</th></tr></thead>
-                            <tbody id="bodyMaster"></tbody>
-                        </table>
+                        <table><thead><tr><th>Nama/Kategori</th><th>Satuan</th><th>Harga</th><th>Stok</th><th>X</th></tr></thead><tbody id="bodyMaster"></tbody></table>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="footer-license">By: Duniatanpaspasi-2026 | Telp. 0852-1522-0987</div>
+        <div style="text-align:center; padding:20px; font-size:12px; color:#999;">By: Duniatanpaspasi-2026 | IKAMAPUSAT CLOUD</div>
     </div>
 
 <script>
@@ -127,8 +114,8 @@
     let dbBarang = [], dbRiwayat = [], keranjang = [], currentUser = null;
 
     document.getElementById('filterTanggal').valueAsDate = new Date();
-    dbCloud.ref('v10_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); updateDashboard(); });
-    dbCloud.ref('v10_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderRiwayat(); updateDashboard(); });
+    dbCloud.ref('v11_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); updateDashboard(); });
+    dbCloud.ref('v11_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderRiwayat(); updateDashboard(); });
 
     function doLogin() {
         const u = document.getElementById('username').value, p = document.getElementById('password').value;
@@ -142,17 +129,37 @@
         } else { alert("Gagal!"); }
     }
 
-    function updateDashboard() {
-        const tgl = new Date().toLocaleDateString('id-ID');
-        let o = 0, p = 0, c = 0;
-        dbRiwayat.forEach(r => { if(r.waktu.includes(tgl)) { o += r.total; p += (r.profit || 0); c++; }});
-        document.getElementById('omzetHariIni').innerText = "Rp " + o.toLocaleString();
-        document.getElementById('profitHariIni').innerText = "Rp " + p.toLocaleString();
-        document.getElementById('trxHariIni').innerText = c;
+    // --- FITUR IMPORT CSV ---
+    function importCSV() {
+        const fileInput = document.getElementById('csvFile');
+        if (!fileInput.files[0]) return alert("Pilih file CSV dulu!");
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const rows = e.target.result.split("\n");
+            rows.forEach((row, index) => {
+                if (index === 0 || row.trim() === "") return; // Skip header/empty
+                const cols = row.split(",");
+                if (cols.length >= 7) {
+                    dbBarang.push({
+                        kode: cols[0].trim(),
+                        nama: cols[1].trim(),
+                        kategori: cols[2].trim(),
+                        satuan: cols[3].trim(),
+                        modal: parseInt(cols[4]),
+                        harga: parseInt(cols[5]),
+                        stok: parseInt(cols[6])
+                    });
+                }
+            });
+            dbCloud.ref('v11_barang').set(dbBarang);
+            alert("Berhasil mengimport data!");
+        };
+        reader.readAsText(fileInput.files[0]);
     }
 
-    function handleKasirScan(event) {
-        if(event.key === 'Enter') {
+    function handleKasirScan(e) {
+        if(e.key === 'Enter') {
             const val = document.getElementById('scanKasir').value;
             const b = dbBarang.find(x => x.kode === val || x.nama.toLowerCase().includes(val.toLowerCase()));
             if(b && b.stok > 0) {
@@ -173,7 +180,6 @@
             b.innerHTML += `<tr><td>${k.nama}<br><small>${k.satuan}</small></td><td><input type="number" class="qty-input" value="${k.qty}" onchange="changeQty(${i}, this.value)"></td><td>Rp ${sub.toLocaleString()}</td></tr>`;
         });
         document.getElementById('totalBelanja').innerText = "Total: Rp " + t.toLocaleString();
-        hitungKembalian();
     }
 
     function changeQty(i, q) {
@@ -215,10 +221,9 @@
         };
 
         dbRiwayat.unshift(trx);
-        dbCloud.ref('v10_barang').set(dbBarang);
-        dbCloud.ref('v10_riwayat').set(dbRiwayat);
+        dbCloud.ref('v11_barang').set(dbBarang);
+        dbCloud.ref('v11_riwayat').set(dbRiwayat);
         alert("LUNAS!"); keranjang = []; renderKeranjang();
-        document.getElementById('bayar').value = '';
     }
 
     function renderRiwayat() {
@@ -232,9 +237,9 @@
     function cetakManual(id) {
         const r = dbRiwayat.find(x => x.id === id);
         let s = `<style>body{font-family:monospace;width:200px;font-size:12px}.c{text-align:center}</style>
-                 <div class="c"><img src="logo.png" width="50" onerror="this.style.display='none'"><br><strong>IKAMAPUSAT</strong><br>${r.waktu}<br>---</div>`;
+                 <div class="c"><strong>IKAMAPUSAT</strong><br>${r.waktu}<br>---</div>`;
         r.items.forEach(it => { s += `<div>${it.nama} x${it.qty} ${it.satuan}<br>Rp ${(it.qty*it.harga).toLocaleString()}</div>`; });
-        s += `<br><strong>TOTAL: Rp ${r.total.toLocaleString()}</strong><br>Bayar: ${r.metode}<br><div class="c">*** LUNAS ***</div><br><div class="c"><img src="qris.png" width="120" onerror="this.style.display='none'"><br>By: Duniatanpaspasi</div>`;
+        s += `<br><strong>TOTAL: Rp ${r.total.toLocaleString()}</strong><br>Bayar: ${r.metode}<br><div class="c">*** LUNAS ***</div><br><div class="c"><img src="qris.png" width="120" onerror="this.style.display='none'"></div>`;
         const w = window.open('', '_blank', 'width=300,height=400'); w.document.write(s); w.print(); w.close();
     }
 
@@ -242,10 +247,10 @@
         const k = document.getElementById('m_kode').value, n = document.getElementById('m_nama').value;
         const kat = document.getElementById('m_kat').value, sat = document.getElementById('m_satuan').value;
         const m = parseInt(document.getElementById('m_modal').value), h = parseInt(document.getElementById('m_harga').value), s = parseInt(document.getElementById('m_stok').value);
-        if(!k || !n) return alert("Lengkapi data!");
+        if(!k || !n) return;
         dbBarang.push({kode:k, nama:n, kategori:kat, satuan:sat, modal:m, harga:h, stok:s});
-        dbCloud.ref('v10_barang').set(dbBarang);
-        alert("Barang Disimpan!");
+        dbCloud.ref('v11_barang').set(dbBarang);
+        alert("Tersimpan!");
     }
 
     function renderMaster() {
@@ -254,7 +259,16 @@
             b.innerHTML += `<tr><td>${br.nama}<br><span class="badge">${br.kategori}</span></td><td>${br.satuan}</td><td>${br.harga.toLocaleString()}</td><td style="${br.stok<=5?'color:red;font-weight:bold':''}">${br.stok}</td><td><button class="btn-d" style="width:auto;padding:2px 5px" onclick="hapusBarang(${i})">X</button></td></tr>`;
         });
     }
-    function hapusBarang(i) { if(confirm("Hapus?")) { dbBarang.splice(i,1); dbCloud.ref('v10_barang').set(dbBarang); }}
+
+    function updateDashboard() {
+        const tgl = new Date().toLocaleDateString('id-ID');
+        let o = 0, p = 0, c = 0;
+        dbRiwayat.forEach(r => { if(r.waktu.includes(tgl)) { o += r.total; p += (r.profit || 0); c++; }});
+        document.getElementById('omzetHariIni').innerText = "Rp " + o.toLocaleString();
+        document.getElementById('profitHariIni').innerText = "Rp " + p.toLocaleString();
+        document.getElementById('trxHariIni').innerText = c;
+    }
+    function hapusBarang(i) { if(confirm("Hapus?")) { dbBarang.splice(i,1); dbCloud.ref('v11_barang').set(dbBarang); }}
 </script>
 </body>
 </html>
