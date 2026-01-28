@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IKAMAPUSAT - Final System v25.6</title>
+    <title>IKAMAPUSAT - Final System v25.8</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         :root { --p: #007bff; --s: #28a745; --d: #dc3545; --g: #6c757d; --bg: #f4f7f6; --dark: #2c3e50; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); min-height: 100vh; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); min-height: 100vh; color: #333; }
         
         /* Navbar & Menu */
         .navbar { background: #fff; padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -22,162 +23,169 @@
         .container { padding: 20px; max-width: 1300px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         
-        /* Form Elements */
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        /* UI Elements */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
         input, button, select { padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; font-size: 14px; }
         button { cursor: pointer; background: var(--p); color: white; border: none; font-weight: bold; transition: 0.2s; }
-        button:active { transform: scale(0.98); }
+        button:hover { filter: brightness(90%); }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; }
-        th { background: #f8f9fa; color: #666; }
+        th { background: #f8f9fa; color: #666; font-weight: 600; }
         
-        /* Modal Perbaikan */
+        /* Modal Style (Fix Tombol Terpotong) */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); overflow-y: auto; }
-        .modal-content { 
-            background: white; 
-            margin: 2% auto; 
-            padding: 25px; 
-            width: 90%; 
-            max-width: 450px; 
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-        }
-        .modal-content label { display: block; font-weight: bold; margin-top: 12px; font-size: 12px; color: var(--g); text-transform: uppercase; }
+        .modal-content { background: white; margin: 3% auto; padding: 25px; width: 90%; max-width: 480px; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
         .modal-footer { display: flex; gap: 12px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px; }
-
+        
         .hidden { display: none !important; }
         .btn-s { background: var(--s); } .btn-d { background: var(--d); } .btn-g { background: var(--g); }
         .btn-edit { background: #ffc107; color: #000; padding: 6px 12px; border-radius: 6px; }
-        .qty-inp { width: 60px; text-align: center; font-weight: bold; }
-        .badge-ppob { background: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .badge-stock { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="modalEdit" class="modal">
         <div class="modal-content">
-            <h3 style="margin-top:0; border-bottom: 2px solid var(--p); padding-bottom: 10px;">
-                <i class="fas fa-edit"></i> Edit Data Barang
-            </h3>
-            
+            <h3 style="margin:0 0 15px 0; color:var(--dark)"><i class="fas fa-edit"></i> Edit Barang</h3>
             <input type="hidden" id="edit_index">
             
-            <label>Barcode / Kode:</label>
+            <label style="font-size:12px; font-weight:bold">BARCODE</label>
             <input type="text" id="edit_kode">
             
-            <label>Nama Barang:</label>
+            <label style="font-size:12px; font-weight:bold">NAMA BARANG</label>
             <input type="text" id="edit_nama">
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div>
-                    <label>Harga Modal (Rp):</label>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1">
+                    <label style="font-size:12px; font-weight:bold">MODAL (Rp)</label>
                     <input type="number" id="edit_modal">
                 </div>
-                <div>
-                    <label>Harga Jual (Rp):</label>
+                <div style="flex:1">
+                    <label style="font-size:12px; font-weight:bold">JUAL (Rp)</label>
                     <input type="number" id="edit_harga">
                 </div>
             </div>
             
-            <label>Stok Saat Ini:</label>
+            <label style="font-size:12px; font-weight:bold">STOK</label>
             <input type="number" id="edit_stok">
 
             <div class="modal-footer">
-                <button class="btn-s" onclick="simpanPerubahan()" style="flex: 2; padding: 15px; font-size: 16px;">
-                    <i class="fas fa-save"></i> SIMPAN
+                <button class="btn-s" onclick="simpanPerubahan()" style="flex: 2; padding: 15px;">
+                    <i class="fas fa-save"></i> SIMPAN PERUBAHAN
                 </button>
-                <button class="btn-g" onclick="closeModal()" style="flex: 1;">
-                    BATAL
-                </button>
+                <button class="btn-g" onclick="closeModal()" style="flex: 1;">BATAL</button>
             </div>
         </div>
     </div>
 
-    <div id="loginPage" style="max-width:400px; margin:80px auto; text-align: center;" class="card">
-        <h1 style="color:var(--p)">IKAMAPUSAT</h1>
-        <p>Silakan Masuk ke Sistem</p>
+    <div id="loginPage" style="max-width:400px; margin:100px auto; text-align: center;" class="card">
+        <h1 style="color:var(--p); margin-bottom:5px">IKAMAPUSAT</h1>
+        <p style="color:var(--g); margin-bottom:25px">Point of Sale & PPOB v25.8</p>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
-        <button onclick="doLogin()">MASUK SEKARANG</button>
+        <button onclick="doLogin()" style="margin-top:10px">MASUK KE SISTEM</button>
     </div>
 
     <div id="appContainer" class="hidden">
         <div class="navbar">
-            <h3 style="margin:0">IKAMA <span id="roleBadge" style="font-size:10px; background:#eee; padding:2px 6px; border-radius:4px"></span></h3>
+            <h3 style="margin:0">IKAMA <span id="roleBadge" style="font-size:10px; background:#eee; padding:2px 6px;"></span></h3>
             <div id="displayUser" style="font-weight:bold"></div>
         </div>
 
         <div class="menu-bar">
             <div class="menu-item active" onclick="showPage('kasir', this)"><i class="fas fa-shopping-cart"></i> Kasir</div>
-            <div class="menu-item" onclick="showPage('ppob', this)"><i class="fas fa-mobile-alt"></i> Pulsa & PPOB</div>
+            <div class="menu-item" onclick="showPage('ppob', this)"><i class="fas fa-mobile-alt"></i> PPOB</div>
             <div class="menu-item" onclick="showPage('laporan', this)"><i class="fas fa-file-invoice-dollar"></i> Laporan</div>
             <div class="menu-item adm-only" onclick="showPage('master', this)"><i class="fas fa-boxes"></i> Master Barang</div>
             <div class="menu-item" onclick="location.reload()" style="background:var(--d)">Keluar</div>
         </div>
 
         <div class="container">
+            
             <div id="page-kasir" class="section">
                 <div class="grid" style="grid-template-columns: 1.5fr 1fr;">
                     <div class="card">
-                        <h3>Penjualan</h3>
-                        <input type="text" id="scanKasir" placeholder="Scan Barcode / Cari Nama..." onkeypress="handleKasirScan(event)" autofocus>
-                        <table>
-                            <thead><tr><th>Barang</th><th style="width:70px">Qty</th><th>Subtotal</th><th>#</th></tr></thead>
+                        <h3>Penjualan Barang</h3>
+                        <input type="text" id="scanKasir" placeholder="Scan Barcode / Ketik Nama..." onkeypress="handleKasirScan(event)" autofocus>
+                        <table style="margin-top:20px">
+                            <thead><tr><th>Item</th><th style="width:60px">Qty</th><th>Subtotal</th><th>#</th></tr></thead>
                             <tbody id="bodyKeranjang"></tbody>
                         </table>
                     </div>
                     <div class="card">
-                        <h3>Total Belanja</h3>
                         <h1 id="totalBelanja" style="text-align:right; font-size:45px; margin:0; color:var(--p)">Rp 0</h1>
-                        <label>Bayar Tunai:</label>
-                        <input type="number" id="uangBayar" placeholder="Rp 0" oninput="hitungKembalian()" style="font-size:20px; font-weight:bold">
+                        <label>Diterima (Tunai):</label>
+                        <input type="number" id="uangBayar" placeholder="Rp 0" oninput="hitungKembalian()" style="font-size:22px; font-weight:bold">
                         <h3 id="textKembalian" style="text-align:right; color:var(--d)">Kembali: Rp 0</h3>
-                        <button class="btn-s" style="padding:20px; font-size:18px" onclick="prosesTransaksi()">PROSES TRANSAKSI</button>
+                        <button class="btn-s" style="padding:20px; font-size:18px" onclick="prosesTransaksi()">SELESAI & SIMPAN</button>
                     </div>
                 </div>
             </div>
 
             <div id="page-master" class="section hidden adm-only">
-                <div class="card">
-                    <h3>Tambah Barang Baru</h3>
-                    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
-                        <input type="text" id="m_kode" placeholder="Barcode">
-                        <input type="text" id="m_nama" placeholder="Nama Barang">
-                        <input type="number" id="m_modal" placeholder="Harga Modal">
-                        <input type="number" id="m_harga" placeholder="Harga Jual">
-                        <input type="number" id="m_stok" placeholder="Stok">
+                <div class="grid">
+                    <div class="card">
+                        <h3><i class="fas fa-file-excel"></i> Import Excel</h3>
+                        <div style="display:flex; gap:8px">
+                            <input type="file" id="inputExcel" accept=".xlsx, .xls">
+                            <button class="btn-s" onclick="importExcel()" style="width:120px">IMPORT</button>
+                        </div>
+                        <button class="btn-g" onclick="downloadTemplate()" style="margin-top:10px; width:100%"><i class="fas fa-download"></i> Download Template Excel</button>
                     </div>
-                    <button class="btn-s" style="margin-top:10px" onclick="tambahBarang()">SIMPAN BARANG</button>
+                    <div class="card">
+                        <h3>Tambah Manual</h3>
+                        <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                            <input type="text" id="m_kode" placeholder="Barcode">
+                            <input type="text" id="m_nama" placeholder="Nama Barang">
+                            <input type="number" id="m_modal" placeholder="Modal">
+                            <input type="number" id="m_harga" placeholder="Jual">
+                        </div>
+                        <button class="btn-s" onclick="tambahBarang()" style="margin-top:10px">TAMBAH KE DATABASE</button>
+                    </div>
                 </div>
+
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-                        <h3>Daftar Inventori</h3>
-                        <input type="text" id="cariMaster" placeholder="Cari barang..." oninput="renderMaster()" style="width:250px">
+                        <h3>Database Inventori</h3>
+                        <input type="text" id="cariMaster" placeholder="Cari barcode/nama..." oninput="renderMaster()" style="width:250px">
                     </div>
                     <table>
                         <thead>
-                            <tr>
-                                <th>Barcode</th>
-                                <th>Nama Barang</th>
-                                <th>Modal</th>
-                                <th>Jual</th>
-                                <th>Stok</th>
-                                <th>Aksi</th>
-                            </tr>
+                            <tr><th>Barcode</th><th>Nama Barang</th><th>Harga Jual</th><th>Stok</th><th style="color:var(--p)">Update Stok</th><th>Aksi</th></tr>
                         </thead>
                         <tbody id="bodyMaster"></tbody>
                     </table>
                 </div>
             </div>
 
+            <div id="page-ppob" class="section hidden">
+                <div class="card" style="max-width:600px; margin:auto">
+                    <h3>Transaksi PPOB / Pulsa</h3>
+                    <select id="p_layanan" onchange="updatePlaceholderPPOB()">
+                        <option value="PULSA">PULSA / DATA</option>
+                        <option value="TOKEN LISTRIK">TOKEN LISTRIK</option>
+                        <option value="WIFI">VOUCHER WIFI</option>
+                    </select>
+                    <input type="text" id="p_tujuan" placeholder="Nomor HP">
+                    <input type="text" id="p_nominal" placeholder="Nominal (Cth: 50.000)">
+                    <div id="fieldToken" class="hidden"><input type="text" id="p_sn" placeholder="Masukkan 20 Digit Token"></div>
+                    <div style="display:flex; gap:10px">
+                        <input type="number" id="p_harga" placeholder="Harga Jual">
+                        <input type="number" id="p_modal" placeholder="Modal">
+                    </div>
+                    <button class="btn-s" onclick="prosesPPOB()" style="margin-top:10px"><i class="fas fa-print"></i> PROSES & CETAK</button>
+                </div>
+            </div>
+
             <div id="page-laporan" class="section hidden">
                 <div class="card">
-                    <h3>Laporan Harian</h3>
-                    <input type="date" id="filterTgl" onchange="renderLaporan()" style="width: auto;">
-                    <table>
+                    <h3>Laporan Penjualan</h3>
+                    <input type="date" id="filterTgl" onchange="renderLaporan()" style="width:200px">
+                    <table style="margin-top:20px">
                         <thead>
-                            <tr><th>Jam</th><th>Kasir</th><th>Detail Item</th><th>Total</th><th class="adm-only">Profit</th></tr>
+                            <tr><th>Jam</th><th>Kasir</th><th>Items</th><th>Total</th><th class="adm-only">Profit</th></tr>
                         </thead>
                         <tbody id="bodyLaporan"></tbody>
                         <tfoot id="footLaporan"></tfoot>
@@ -185,33 +193,11 @@
                 </div>
             </div>
 
-            <div id="page-ppob" class="section hidden">
-                <div class="card" style="max-width: 500px; margin: auto;">
-                    <h3>Layanan PPOB & Token</h3>
-                    <select id="p_layanan" onchange="updatePlaceholderPPOB()">
-                        <option value="PULSA">PULSA / DATA</option>
-                        <option value="TOKEN LISTRIK">TOKEN LISTRIK (PLN)</option>
-                        <option value="VOUCHER WIFI">VOUCHER WIFI / GAME</option>
-                    </select>
-                    <input type="text" id="p_tujuan" placeholder="Nomor HP">
-                    <input type="text" id="p_nama_plg" placeholder="Nama Pelanggan (Opsional)">
-                    <input type="text" id="p_nominal" placeholder="Nominal (Misal: 50.000)">
-                    <div id="fieldToken" class="hidden">
-                        <input type="text" id="p_sn" placeholder="MASUKKAN 20 DIGIT TOKEN">
-                    </div>
-                    <div style="display:flex; gap:10px">
-                        <input type="number" id="p_harga" placeholder="Harga Jual">
-                        <input type="number" id="p_modal" placeholder="Harga Modal">
-                    </div>
-                    <button class="btn-s" onclick="prosesPPOB()" style="margin-top:10px"><i class="fas fa-print"></i> SIMPAN & CETAK STRUK</button>
-                </div>
-            </div>
-
         </div>
     </div>
 
 <script>
-    // --- KONFIGURASI DATABASE ---
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyAvJdH3fnfUvupwtRDbSvhBjiY3tIxXnW0",
         authDomain: "kasir-ikamapusat.firebaseapp.com",
@@ -226,14 +212,14 @@
     
     let dbBarang = [], dbRiwayat = [], dbUsers = [], keranjang = [], userLogin = null;
 
-    // Sync Otomatis
+    // Sinkronisasi Data
     dbCloud.ref('v25_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); });
     dbCloud.ref('v25_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderLaporan(); });
     dbCloud.ref('v25_users').on('value', snap => { 
         dbUsers = snap.val() || [{nama:'Admin', user:'admin', pass:'123', role:'admin'}];
     });
 
-    // --- FUNGSI CORE ---
+    // --- AUTH ---
     function doLogin() {
         const u = document.getElementById('username').value, p = document.getElementById('password').value;
         const found = dbUsers.find(x => x.user === u && x.pass === p);
@@ -245,7 +231,7 @@
             document.getElementById('roleBadge').innerText = userLogin.role.toUpperCase();
             if(userLogin.role !== 'admin') document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
             document.getElementById('filterTgl').valueAsDate = new Date();
-        } else alert("Username atau Password Salah!");
+        } else alert("Akses Ditolak!");
     }
 
     function showPage(p, el) {
@@ -256,19 +242,20 @@
         if(p === 'laporan') renderLaporan();
     }
 
-    // --- MANAJEMEN BARANG (MASTER & EDIT) ---
+    // --- MASTER & IMPORT EXCEL ---
     function renderMaster() {
         const b = document.getElementById('bodyMaster'); if(!b) return;
         const cari = document.getElementById('cariMaster').value.toLowerCase();
         b.innerHTML = '';
         dbBarang.forEach((brg, i) => {
             if(brg.nama.toLowerCase().includes(cari) || brg.kode.toLowerCase().includes(cari)) {
+                const sColor = brg.stok < 5 ? 'background:#ffcccc; color:red' : 'background:#ccffcc; color:green';
                 b.innerHTML += `<tr>
                     <td>${brg.kode}</td>
                     <td><b>${brg.nama}</b></td>
-                    <td>${brg.modal.toLocaleString()}</td>
-                    <td>${brg.harga.toLocaleString()}</td>
-                    <td style="font-weight:bold; color:${brg.stok < 5 ? 'red' : 'green'}">${brg.stok}</td>
+                    <td>Rp ${brg.harga.toLocaleString()}</td>
+                    <td><span class="badge-stock" style="${sColor}">${brg.stok}</span></td>
+                    <td><input type="number" placeholder="Stok Baru" style="width:100px; padding:5px" onkeypress="if(event.key==='Enter') quickStock(${i}, this.value)"></td>
                     <td>
                         <button class="btn-edit" onclick="openEdit(${i})"><i class="fas fa-edit"></i></button>
                         <button class="btn-d" onclick="hapusBarang(${i})" style="padding:6px 12px"><i class="fas fa-trash"></i></button>
@@ -278,6 +265,41 @@
         });
     }
 
+    function quickStock(i, v) {
+        if(v==="" || v < 0) return;
+        dbBarang[i].stok = parseInt(v);
+        dbCloud.ref('v25_barang').set(dbBarang).then(() => alert("Stok Diperbarui!"));
+    }
+
+    function importExcel() {
+        const file = document.getElementById('inputExcel').files[0];
+        if(!file) return alert("Pilih file excel!");
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const workbook = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            if(confirm(`Impor ${json.length} item?`)) {
+                json.forEach(x => {
+                    dbBarang.push({
+                        kode: x.Barcode.toString(), nama: x.Nama, 
+                        modal: parseInt(x.Modal)||0, harga: parseInt(x.Jual)||0, stok: parseInt(x.Stok)||0
+                    });
+                });
+                dbCloud.ref('v25_barang').set(dbBarang).then(() => alert("Sukses Impor!"));
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function downloadTemplate() {
+        const data = [["Barcode", "Nama", "Modal", "Jual", "Stok"], ["8999", "Contoh Item", 5000, 7000, 10]];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Barang");
+        XLSX.writeFile(wb, "Template_IKAMA.xlsx");
+    }
+
+    // --- EDIT MODAL ---
     function openEdit(i) {
         const b = dbBarang[i];
         document.getElementById('edit_index').value = i;
@@ -293,35 +315,26 @@
 
     function simpanPerubahan() {
         const i = document.getElementById('edit_index').value;
-        const k = document.getElementById('edit_kode').value;
-        const n = document.getElementById('edit_nama').value;
-        
-        if(!k || !n) return alert("Kode dan Nama wajib diisi!");
-
         dbBarang[i] = {
-            kode: k,
-            nama: n,
+            kode: document.getElementById('edit_kode').value,
+            nama: document.getElementById('edit_nama').value,
             modal: parseInt(document.getElementById('edit_modal').value) || 0,
             harga: parseInt(document.getElementById('edit_harga').value) || 0,
             stok: parseInt(document.getElementById('edit_stok').value) || 0
         };
-
-        dbCloud.ref('v25_barang').set(dbBarang).then(() => {
-            alert("Perubahan Berhasil Disimpan!");
-            closeModal();
-        });
+        dbCloud.ref('v25_barang').set(dbBarang).then(() => { closeModal(); alert("Berhasil Diupdate!"); });
     }
 
     function tambahBarang() {
-        const k=document.getElementById('m_kode'), n=document.getElementById('m_nama'), mod=document.getElementById('m_modal'), h=document.getElementById('m_harga'), s=document.getElementById('m_stok');
-        if(!k.value || !n.value) return alert("Lengkapi data!");
-        dbBarang.push({kode:k.value, nama:n.value, modal:parseInt(mod.value)||0, harga:parseInt(h.value)||0, stok:parseInt(s.value)||0});
-        dbCloud.ref('v25_barang').set(dbBarang).then(() => { [k,n,mod,h,s].forEach(i=>i.value=''); k.focus(); });
+        const k=document.getElementById('m_kode'), n=document.getElementById('m_nama'), mod=document.getElementById('m_modal'), h=document.getElementById('m_harga');
+        if(!k.value || !n.value) return alert("Isi Kode & Nama!");
+        dbBarang.push({kode:k.value, nama:n.value, modal:parseInt(mod.value)||0, harga:parseInt(h.value)||0, stok:0});
+        dbCloud.ref('v25_barang').set(dbBarang).then(() => { k.value=''; n.value=''; mod.value=''; h.value=''; k.focus(); });
     }
 
-    function hapusBarang(i) { if(confirm("Hapus barang selamanya?")) { dbBarang.splice(i,1); dbCloud.ref('v25_barang').set(dbBarang); } }
+    function hapusBarang(i) { if(confirm("Hapus barang?")) { dbBarang.splice(i,1); dbCloud.ref('v25_barang').set(dbBarang); } }
 
-    // --- TRANSAKSI KASIR ---
+    // --- KASIR ---
     function handleKasirScan(e) {
         if(e.key === 'Enter') {
             const val = document.getElementById('scanKasir').value;
@@ -340,7 +353,7 @@
         let total = 0;
         keranjang.forEach((k, i) => {
             let sub = k.qty * k.harga; total += sub;
-            b.innerHTML += `<tr><td>${k.nama}</td><td><input type="number" class="qty-inp" value="${k.qty}" onchange="updateQty(${i}, this.value)"></td><td>${sub.toLocaleString()}</td><td><button onclick="updateQty(${i},0)" style="color:red; background:none; border:none;">X</button></td></tr>`;
+            b.innerHTML += `<tr><td>${k.nama}</td><td><input type="number" class="qty-inp" style="width:50px" value="${k.qty}" onchange="updateQty(${i}, this.value)"></td><td>${sub.toLocaleString()}</td><td><button onclick="updateQty(${i},0)" style="background:none; color:red">X</button></td></tr>`;
         });
         document.getElementById('totalBelanja').innerText = "Rp " + total.toLocaleString();
         hitungKembalian();
@@ -356,8 +369,7 @@
 
     function prosesTransaksi() {
         const total = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,''));
-        if(total === 0) return alert("Keranjang masih kosong!");
-        
+        if(total === 0) return;
         let profit = 0, items = [];
         keranjang.forEach(item => {
             profit += (item.qty * (item.harga - item.modal));
@@ -365,56 +377,31 @@
             const idx = dbBarang.findIndex(b => b.kode === item.kode);
             if(idx !== -1) dbBarang[idx].stok -= item.qty;
         });
-
         const skrg = new Date();
         dbRiwayat.unshift({
-            tgl: skrg.toISOString().split('T')[0],
-            jam: skrg.getHours().toString().padStart(2,'0')+":"+skrg.getMinutes().toString().padStart(2,'0'),
+            tgl: skrg.toISOString().split('T')[0], jam: skrg.getHours().toString().padStart(2,'0')+":"+skrg.getMinutes().toString().padStart(2,'0'),
             kasir: userLogin.nama, items: items.join(", "), total: total, profit: profit
         });
-
         dbCloud.ref('v25_barang').set(dbBarang);
-        dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => {
-            alert("Transaksi Berhasil Disimpan!");
-            keranjang = []; renderKeranjang();
-            document.getElementById('uangBayar').value = '';
-        });
+        dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => { alert("Sukses!"); keranjang = []; renderKeranjang(); document.getElementById('uangBayar').value = ''; });
     }
 
-    // --- PPOB & STRUK ---
+    // --- PPOB ---
     function updatePlaceholderPPOB() {
         const lay = document.getElementById('p_layanan').value;
         document.getElementById('fieldToken').className = (lay === 'TOKEN LISTRIK' ? '' : 'hidden');
-        document.getElementById('p_tujuan').placeholder = (lay === 'TOKEN LISTRIK' ? 'ID Pelanggan / No. Meter' : 'Nomor HP');
     }
 
     function prosesPPOB() {
-        const lay = document.getElementById('p_layanan').value, tjn = document.getElementById('p_tujuan').value, nplg = document.getElementById('p_nama_plg').value || '-', nom = document.getElementById('p_nominal').value;
-        const hrg = parseInt(document.getElementById('p_harga').value) || 0, mod = parseInt(document.getElementById('p_modal').value) || 0, sn = document.getElementById('p_sn').value;
-        
-        if(!tjn || !nom || hrg <= 0) return alert("Lengkapi data PPOB!");
-
+        const hrg = parseInt(document.getElementById('p_harga').value) || 0, mod = parseInt(document.getElementById('p_modal').value) || 0;
+        if(hrg <= 0) return;
         const skrg = new Date();
-        const jamStr = skrg.getHours().toString().padStart(2,'0')+":"+skrg.getMinutes().toString().padStart(2,'0');
-
         dbRiwayat.unshift({
-            tgl: skrg.toISOString().split('T')[0], jam: jamStr, kasir: userLogin.nama,
-            items: `[${lay}] ${nom} - ${tjn}`, total: hrg, profit: hrg - mod
+            tgl: skrg.toISOString().split('T')[0], jam: skrg.getHours().toString().padStart(2,'0')+":"+skrg.getMinutes().toString().padStart(2,'0'),
+            kasir: userLogin.nama, items: `[PPOB] ${document.getElementById('p_layanan').value} ${document.getElementById('p_nominal').value}`, 
+            total: hrg, profit: hrg - mod
         });
-
-        dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => {
-            alert("Transaksi PPOB Berhasil!");
-            // Cetak Struk Sederhana
-            const win = window.open('', '', 'width=300,height=400');
-            win.document.write(`<html><body style="font-family:monospace; font-size:12px">
-                <center><strong>IKAMAPUSAT</strong><br>PPOB STRUK DIGITAL<br>---</center>
-                TGL: ${skrg.toLocaleDateString()}<br>JAM: ${jamStr}<br>LAYANAN: ${lay}<br>TUJUAN: ${tjn}<br>NAMA: ${nplg}<br>NOMINAL: ${nom}<br>
-                ${lay === 'TOKEN LISTRIK' ? `<center>TOKEN:<br><strong>${sn}</strong></center>` : ''}
-                <hr>TOTAL: Rp ${hrg.toLocaleString()}<hr><center>TERIMA KASIH</center>
-                <script>window.print(); setTimeout(()=>window.close(), 500);<\/script></body></html>`);
-            win.document.close();
-            ['p_tujuan','p_nama_plg','p_nominal','p_harga','p_modal','p_sn'].forEach(id => document.getElementById(id).value = '');
-        });
+        dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => alert("PPOB Berhasil!"));
     }
 
     // --- LAPORAN ---
@@ -422,13 +409,11 @@
         const tgl = document.getElementById('filterTgl').value;
         const b = document.getElementById('bodyLaporan'), f = document.getElementById('footLaporan');
         b.innerHTML = ''; let tUang = 0, tProfit = 0;
-        
         dbRiwayat.filter(r => r.tgl === tgl).forEach(r => {
-            tUang += r.total; tProfit += (r.profit || 0);
-            const isDigital = r.items.startsWith("[");
-            b.innerHTML += `<tr><td>${r.jam}</td><td>${r.kasir}</td><td>${isDigital ? '<span class="badge-ppob">PPOB</span> ' : ''}${r.items}</td><td>${r.total.toLocaleString()}</td><td class="adm-only">${(r.profit || 0).toLocaleString()}</td></tr>`;
+            tUang += r.total; tProfit += r.profit;
+            b.innerHTML += `<tr><td>${r.jam}</td><td>${r.kasir}</td><td><small>${r.items}</small></td><td>${r.total.toLocaleString()}</td><td class="adm-only">${r.profit.toLocaleString()}</td></tr>`;
         });
-        f.innerHTML = `<tr style="background:#f0f0f0; font-weight:bold"><td colspan="3" align="right">TOTAL PENDAPATAN:</td><td>Rp ${tUang.toLocaleString()}</td><td class="adm-only">Rp ${tProfit.toLocaleString()}</td></tr>`;
+        f.innerHTML = `<tr style="font-weight:bold; background:#eee"><td colspan="3" align="right">TOTAL:</td><td>Rp ${tUang.toLocaleString()}</td><td class="adm-only">Rp ${tProfit.toLocaleString()}</td></tr>`;
         if(userLogin.role !== 'admin') document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
     }
 </script>
