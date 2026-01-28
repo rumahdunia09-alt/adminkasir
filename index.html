@@ -152,4 +152,178 @@
                         </select>
                         <input type="text" id="p_tujuan" placeholder="Nomor HP">
                         <input type="text" id="p_sn" placeholder="SN/Token (Khusus Listrik)">
-                        <input type="number" id="p_harga"
+                        <input type="number" id="p_harga" placeholder="Harga Jual">
+                    </div>
+                    <button class="btn-s" onclick="prosesPPOB()">SIMPAN & CETAK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- FIREBASE (USE YOUR PREVIOUS CONFIG) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyAvJdH3fnfUvupwtRDbSvhBjiY3tIxXnW0",
+        authDomain: "kasir-ikamapusat.firebaseapp.com",
+        databaseURL: "https://kasir-ikamapusat-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "kasir-ikamapusat",
+        storageBucket: "kasir-ikamapusat.firebasestorage.app",
+        messagingSenderId: "375649394523",
+        appId: "1:375649394523:web:1e13212c1f9c1d8829447e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const dbCloud = firebase.database();
+    
+    let dbBarang = [], dbRiwayat = [], dbUsers = [], keranjang = [], userLogin = null;
+
+    dbCloud.ref('v25_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); });
+    dbCloud.ref('v25_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderLaporan(); });
+    dbCloud.ref('v25_users').on('value', snap => { 
+        dbUsers = snap.val() || [{nama:'Admin', user:'admin', pass:'123', role:'admin'}];
+    });
+
+    // --- FITUR EDIT BARANG ---
+    function openEdit(i) {
+        const b = dbBarang[i];
+        document.getElementById('edit_index').value = i;
+        document.getElementById('edit_kode').value = b.kode;
+        document.getElementById('edit_nama').value = b.nama;
+        document.getElementById('edit_modal').value = b.modal;
+        document.getElementById('edit_harga').value = b.harga;
+        document.getElementById('edit_stok').value = b.stok;
+        document.getElementById('modalEdit').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('modalEdit').style.display = 'none';
+    }
+
+    function simpanPerubahan() {
+        const i = document.getElementById('edit_index').value;
+        dbBarang[i] = {
+            kode: document.getElementById('edit_kode').value,
+            nama: document.getElementById('edit_nama').value,
+            modal: parseInt(document.getElementById('edit_modal').value),
+            harga: parseInt(document.getElementById('edit_harga').value),
+            stok: parseInt(document.getElementById('edit_stok').value)
+        };
+        dbCloud.ref('v25_barang').set(dbBarang).then(() => {
+            alert("Data diperbarui!");
+            closeModal();
+        });
+    }
+
+    function renderMaster() {
+        const b = document.getElementById('bodyMaster'); if(!b) return;
+        const cari = document.getElementById('cariMaster').value.toLowerCase();
+        b.innerHTML = '';
+        dbBarang.forEach((brg, i) => {
+            if(brg.nama.toLowerCase().includes(cari) || brg.kode.toLowerCase().includes(cari)) {
+                b.innerHTML += `<tr>
+                    <td>${brg.kode}</td>
+                    <td><b>${brg.nama}</b></td>
+                    <td>${brg.modal.toLocaleString()}</td>
+                    <td>${brg.harga.toLocaleString()}</td>
+                    <td>${brg.stok}</td>
+                    <td>
+                        <button class="btn-edit" onclick="openEdit(${i})"><i class="fas fa-edit"></i></button>
+                        <button class="btn-d" onclick="hapusBarang(${i})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }
+        });
+    }
+
+    // --- LOGIN & NAV ---
+    function doLogin() {
+        const u = document.getElementById('username').value, p = document.getElementById('password').value;
+        const found = dbUsers.find(x => x.user === u && x.pass === p);
+        if(found) {
+            userLogin = found;
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            document.getElementById('displayUser').innerText = userLogin.nama;
+            document.getElementById('roleBadge').innerText = userLogin.role.toUpperCase();
+            if(userLogin.role !== 'admin') document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
+            document.getElementById('filterTgl').valueAsDate = new Date();
+        } else alert("Salah!");
+    }
+
+    function showPage(p, el) {
+        document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+        document.getElementById('page-'+p).classList.remove('hidden');
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        el.classList.add('active');
+        if(p === 'laporan') renderLaporan();
+    }
+
+    // --- OTHER FUNCTIONS (KASIR, TRANSAKSI, DLL - TETAP SAMA) ---
+    function tambahBarang() {
+        const k=document.getElementById('m_kode'), n=document.getElementById('m_nama'), mod=document.getElementById('m_modal'), h=document.getElementById('m_harga'), s=document.getElementById('m_stok');
+        dbBarang.push({kode:k.value, nama:n.value, modal:parseInt(mod.value)||0, harga:parseInt(h.value)||0, stok:parseInt(s.value)||0});
+        dbCloud.ref('v25_barang').set(dbBarang).then(() => { [k,n,mod,h,s].forEach(i=>i.value=''); });
+    }
+
+    function hapusBarang(i) { if(confirm("Hapus?")) { dbBarang.splice(i,1); dbCloud.ref('v25_barang').set(dbBarang); } }
+
+    function handleKasirScan(e) {
+        if(e.key === 'Enter') {
+            const val = document.getElementById('scanKasir').value;
+            const b = dbBarang.find(x => x.kode === val || x.nama.toLowerCase().includes(val.toLowerCase()));
+            if(b) {
+                const ada = keranjang.find(k => k.kode === b.kode);
+                if(ada) ada.qty++; else keranjang.push({...b, qty:1});
+                renderKeranjang();
+            }
+            document.getElementById('scanKasir').value = '';
+        }
+    }
+
+    function renderKeranjang() {
+        const b = document.getElementById('bodyKeranjang'); b.innerHTML = '';
+        let total = 0;
+        keranjang.forEach((k, i) => {
+            let sub = k.qty * k.harga; total += sub;
+            b.innerHTML += `<tr><td>${k.nama}</td><td><input type="number" style="width:50px" value="${k.qty}" onchange="updateQty(${i}, this.value)"></td><td>${sub.toLocaleString()}</td><td><button onclick="updateQty(${i},0)">X</button></td></tr>`;
+        });
+        document.getElementById('totalBelanja').innerText = "Rp " + total.toLocaleString();
+    }
+
+    function updateQty(i, v) { if(v<=0) keranjang.splice(i,1); else keranjang[i].qty=parseInt(v); renderKeranjang(); }
+
+    function hitungKembalian() {
+        const t = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,'')) || 0;
+        const b = parseInt(document.getElementById('uangBayar').value) || 0;
+        document.getElementById('textKembalian').innerText = "Kembali: Rp " + (b-t < 0 ? 0 : b-t).toLocaleString();
+    }
+
+    function prosesTransaksi() {
+        const total = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,''));
+        if(total === 0) return alert("Kosong!");
+        let profit = 0, list = [];
+        keranjang.forEach(item => {
+            profit += (item.qty * (item.harga - item.modal));
+            list.push(`${item.nama}(${item.qty})`);
+            const idx = dbBarang.findIndex(b => b.kode === item.kode);
+            if(idx !== -1) dbBarang[idx].stok -= item.qty;
+        });
+        const skrg = new Date();
+        dbRiwayat.unshift({ tgl: skrg.toISOString().split('T')[0], jam: skrg.getHours().toString().padStart(2,'0')+":"+skrg.getMinutes().toString().padStart(2,'0'), kasir: userLogin.nama, items: list.join(", "), total: total, profit: profit });
+        dbCloud.ref('v25_barang').set(dbBarang);
+        dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => { alert("Berhasil!"); keranjang = []; renderKeranjang(); document.getElementById('uangBayar').value = ''; });
+    }
+
+    function renderLaporan() {
+        const tgl = document.getElementById('filterTgl').value;
+        const b = document.getElementById('bodyLaporan'), f = document.getElementById('footLaporan');
+        b.innerHTML = ''; let tUang = 0, tProfit = 0;
+        dbRiwayat.filter(r => r.tgl === tgl).forEach(r => {
+            tUang += r.total; tProfit += (r.profit || 0);
+            b.innerHTML += `<tr><td>${r.jam}</td><td>${r.kasir}</td><td>${r.items}</td><td>${r.total.toLocaleString()}</td><td class="adm-only">${(r.profit || 0).toLocaleString()}</td></tr>`;
+        });
+        f.innerHTML = `<tr><td colspan="3" align="right">TOTAL:</td><td>Rp ${tUang.toLocaleString()}</td><td class="adm-only">Rp ${tProfit.toLocaleString()}</td></tr>`;
+        if(userLogin.role !== 'admin') document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
+    }
+</script>
+</body>
+</html>
