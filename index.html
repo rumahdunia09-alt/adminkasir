@@ -3,49 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IKAMAPUSAT - Final System v25.4</title>
+    <title>IKAMAPUSAT - Final System v25.5</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         :root { --p: #007bff; --s: #28a745; --d: #dc3545; --g: #6c757d; --bg: #f4f7f6; --dark: #2c3e50; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); min-height: 100vh; }
         
+        /* Layout & UI */
         .navbar { background: #fff; padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .logo-img { height: 40px; vertical-align: middle; margin-right: 10px; }
         .menu-bar { background: var(--dark); padding: 10px 25px; display: flex; gap: 10px; overflow-x: auto; }
         .menu-item { color: #fff; cursor: pointer; padding: 10px 18px; border-radius: 5px; font-size: 13px; white-space: nowrap; transition: 0.3s; display: flex; align-items: center; gap: 8px; }
         .menu-item:hover, .menu-item.active { background: var(--p); }
-
         .container { padding: 20px; max-width: 1300px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        /* Form & Table */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         input, button, select { padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; font-size: 14px; }
-        button { cursor: pointer; background: var(--p); color: white; border: none; font-weight: bold; transition: 0.2s; }
-        button:active { transform: scale(0.98); }
-        
+        button { cursor: pointer; background: var(--p); color: white; border: none; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; }
-        th { background: #f8f9fa; color: #666; }
         
-        .hidden { display: none !important; }
-        .btn-s { background: var(--s); } .btn-d { background: var(--d); } .btn-g { background: var(--g); }
-        .qty-inp { width: 65px !important; padding: 5px !important; text-align: center; font-weight: bold; }
-        .opname-inp { width: 80px !important; padding: 5px !important; border: 2px solid var(--p); text-align: center; border-radius: 4px; }
-        .subtotal-row { background: #f8f9fa; font-weight: bold; font-size: 14px; }
-        .badge-ppob { background: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        /* Modal Style */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 10% auto; padding: 25px; width: 400px; border-radius: 12px; }
 
-        #strukPrint { display: none; }
+        .hidden { display: none !important; }
+        .btn-edit { background: #ffc107; color: black; padding: 5px 10px; margin-right: 5px; }
+        .btn-d { background: var(--d); padding: 5px 10px; }
+        .btn-s { background: var(--s); }
     </style>
 </head>
 <body>
 
+    <div id="modalEdit" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-edit"></i> Edit Barang</h3>
+            <input type="hidden" id="edit_index">
+            <label>Barcode:</label><input type="text" id="edit_kode">
+            <label>Nama Barang:</label><input type="text" id="edit_nama">
+            <label>Harga Modal:</label><input type="number" id="edit_modal">
+            <label>Harga Jual:</label><input type="number" id="edit_harga">
+            <label>Stok:</label><input type="number" id="edit_stok">
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-s" onclick="simpanPerubahan()">SIMPAN</button>
+                <button style="background:var(--g)" onclick="closeModal()">BATAL</button>
+            </div>
+        </div>
+    </div>
+
     <div id="loginPage" style="max-width:400px; margin:80px auto; text-align: center;" class="card">
-        <img src="logo.png" style="width:120px; margin-bottom:20px" onerror="this.src='https://via.placeholder.com/120?text=IKAMA'">
         <h2>IKAMAPUSAT LOGIN</h2>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
@@ -54,101 +65,63 @@
 
     <div id="appContainer" class="hidden">
         <div class="navbar">
-            <div>
-                <img src="logo.png" class="logo-img" onerror="this.style.display='none'">
-                <h3 style="display: inline-block; margin:0">IKAMAPUSAT <span id="roleBadge" style="font-size:10px; background:#eee; padding:2px 6px; border-radius:4px"></span></h3>
-            </div>
-            <div id="displayUser" style="font-weight:bold"></div>
+            <h3>IKAMAPUSAT <span id="roleBadge" style="font-size:10px; background:#eee; padding:2px 6px;"></span></h3>
+            <div id="displayUser"></div>
         </div>
 
         <div class="menu-bar">
             <div class="menu-item active" onclick="showPage('kasir', this)"><i class="fas fa-shopping-cart"></i> Kasir</div>
-            <div class="menu-item" onclick="showPage('ppob', this)"><i class="fas fa-mobile-alt"></i> Pulsa & PPOB</div>
+            <div class="menu-item" onclick="showPage('ppob', this)"><i class="fas fa-mobile-alt"></i> PPOB</div>
             <div class="menu-item" onclick="showPage('laporan', this)"><i class="fas fa-file-invoice-dollar"></i> Laporan</div>
-            <div class="menu-item adm-only" onclick="showPage('master', this)"><i class="fas fa-boxes"></i> Master & Opname</div>
-            <div class="menu-item adm-only" onclick="showPage('karyawan', this)"><i class="fas fa-users-cog"></i> Karyawan</div>
+            <div class="menu-item adm-only" onclick="showPage('master', this)"><i class="fas fa-boxes"></i> Master & Edit</div>
             <div class="menu-item" onclick="location.reload()" style="background:var(--d)">Keluar</div>
         </div>
 
         <div class="container">
             <div id="page-kasir" class="section">
-                <div class="grid">
+                <div class="grid" style="grid-template-columns: 2fr 1fr;">
                     <div class="card">
-                        <h3>Penjualan Barang</h3>
                         <input type="text" id="scanKasir" placeholder="Scan Barcode / Cari Nama..." onkeypress="handleKasirScan(event)" autofocus>
                         <table>
-                            <thead><tr><th>Barang</th><th style="width:80px">Qty</th><th>Subtotal</th><th>#</th></tr></thead>
+                            <thead><tr><th>Barang</th><th>Qty</th><th>Subtotal</th><th>#</th></tr></thead>
                             <tbody id="bodyKeranjang"></tbody>
                         </table>
                     </div>
                     <div class="card">
-                        <h3>Pembayaran</h3>
-                        <h1 id="totalBelanja" style="text-align:right; font-size:40px; margin:0; color:var(--p)">Rp 0</h1>
-                        <input type="number" id="uangBayar" placeholder="Bayar (Rp)" oninput="hitungKembalian()" style="font-size:20px;">
+                        <h1 id="totalBelanja" style="text-align:right; color:var(--p)">Rp 0</h1>
+                        <input type="number" id="uangBayar" placeholder="Bayar (Rp)" oninput="hitungKembalian()">
                         <h3 id="textKembalian" style="text-align:right; color:var(--d)">Kembali: Rp 0</h3>
-                        <button class="btn-s" style="padding:15px; font-size:18px" onclick="prosesTransaksi()">SIMPAN TRANSAKSI</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-ppob" class="section hidden">
-                <div class="grid">
-                    <div class="card">
-                        <h3><i class="fas fa-bolt"></i> Transaksi Digital</h3>
-                        <select id="p_layanan" onchange="updatePlaceholderPPOB()">
-                            <option value="PULSA">PULSA</option>
-                            <option value="TOKEN LISTRIK">TOKEN LISTRIK</option>
-                            <option value="VOUCHER WIFI">VOUCHER WIFI</option>
-                            <option value="KUOTA DATA">KUOTA DATA</option>
-                        </select>
-                        <input type="text" id="p_tujuan" placeholder="Nomor HP">
-                        <input type="text" id="p_nama_plg" placeholder="Nama Pelanggan (Opsional)">
-                        <input type="text" id="p_nominal" placeholder="Nominal (Contoh: 50.000)">
-                        <div id="fieldToken" class="hidden">
-                            <input type="text" id="p_sn" placeholder="NOMOR TOKEN (20 Digit)">
-                        </div>
-                        <div style="display: flex; gap: 5px;">
-                            <input type="number" id="p_harga" placeholder="Harga Jual">
-                            <input type="number" id="p_modal" placeholder="Modal">
-                        </div>
-                        <button class="btn-s" onclick="prosesPPOB()">SIMPAN & CETAK</button>
-                    </div>
-                    <div class="card">
-                        <h3>Terakhir</h3>
-                        <div id="lastPPOBBox" style="padding:15px; background:#f8f9fa; border-left:4px solid var(--s)">
-                            <p id="lastPPOBText">Belum ada transaksi.</p>
-                            <button id="btnRePrint" class="btn-g hidden" onclick="printStruk()">Cetak Ulang</button>
-                        </div>
+                        <button class="btn-s" onclick="prosesTransaksi()">SIMPAN TRANSAKSI</button>
                     </div>
                 </div>
             </div>
 
             <div id="page-master" class="section hidden adm-only">
                 <div class="card">
-                    <h3>Tambah / Update Barang Baru</h3>
-                    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                    <h3>Tambah Barang</h3>
+                    <div class="grid">
                         <input type="text" id="m_kode" placeholder="Barcode">
-                        <input type="text" id="m_nama" placeholder="Nama Barang">
+                        <input type="text" id="m_nama" placeholder="Nama">
                         <input type="number" id="m_modal" placeholder="Modal">
-                        <input type="number" id="m_harga" placeholder="Harga Jual">
-                        <input type="number" id="m_stok" placeholder="Stok Awal">
+                        <input type="number" id="m_harga" placeholder="Jual">
+                        <input type="number" id="m_stok" placeholder="Stok">
                     </div>
-                    <button class="btn-s" style="margin-top:10px" onclick="tambahBarang()">SIMPAN KE DATABASE</button>
+                    <button class="btn-s" onclick="tambahBarang()">TAMBAH KE DATABASE</button>
                 </div>
 
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>Inventori & Stok Opname</h3>
-                        <div style="width:250px;"><input type="text" id="cariMaster" placeholder="Cari barang..." oninput="renderMaster()"></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 15px;">
+                        <h3>Daftar Barang & Inventori</h3>
+                        <input type="text" id="cariMaster" placeholder="Cari..." oninput="renderMaster()" style="width:200px">
                     </div>
-                    <p style="font-size: 12px; color: var(--g)">*Gunakan kolom <b>Stok Nyata</b> untuk update stok manual jika barang di rak berbeda dengan sistem.</p>
                     <table>
                         <thead>
                             <tr>
+                                <th>Barcode</th>
                                 <th>Nama Barang</th>
-                                <th>Harga Jual</th>
-                                <th>Stok Sistem</th>
-                                <th style="color:var(--p); width:120px">Stok Nyata (Opname)</th>
+                                <th>Modal</th>
+                                <th>Jual</th>
+                                <th>Stok</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -168,222 +141,15 @@
                     </table>
                 </div>
             </div>
-
-            <div id="page-karyawan" class="section hidden adm-only">
+            
+            <div id="page-ppob" class="section hidden">
                 <div class="card">
-                    <h3>Kelola Karyawan</h3>
+                    <h3>Transaksi Digital</h3>
                     <div class="grid">
-                        <input type="text" id="k_nama" placeholder="Nama">
-                        <input type="text" id="k_user" placeholder="Username">
-                        <input type="text" id="k_pass" placeholder="Password">
-                    </div>
-                    <button class="btn-s" onclick="tambahKaryawan()">TAMBAH KARYAWAN</button>
-                    <table>
-                        <thead><tr><th>Nama</th><th>User</th><th>Aksi</th></tr></thead>
-                        <tbody id="bodyKaryawan"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAvJdH3fnfUvupwtRDbSvhBjiY3tIxXnW0",
-        authDomain: "kasir-ikamapusat.firebaseapp.com",
-        databaseURL: "https://kasir-ikamapusat-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "kasir-ikamapusat",
-        storageBucket: "kasir-ikamapusat.firebasestorage.app",
-        messagingSenderId: "375649394523",
-        appId: "1:375649394523:web:1e13212c1f9c1d8829447e"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const dbCloud = firebase.database();
-    
-    let dbBarang = [], dbRiwayat = [], dbUsers = [], keranjang = [], userLogin = null;
-    let lastDataStruk = null;
-
-    dbCloud.ref('v25_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); });
-    dbCloud.ref('v25_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderLaporan(); });
-    dbCloud.ref('v25_users').on('value', snap => { 
-        dbUsers = snap.val() || [{nama:'Admin', user:'admin', pass:'123', role:'admin'}];
-        renderKaryawan();
-    });
-
-    function doLogin() {
-        const u = document.getElementById('username').value, p = document.getElementById('password').value;
-        const found = dbUsers.find(x => x.user === u && x.pass === p);
-        if(found) {
-            userLogin = found;
-            document.getElementById('loginPage').classList.add('hidden');
-            document.getElementById('appContainer').classList.remove('hidden');
-            document.getElementById('displayUser').innerText = userLogin.nama;
-            document.getElementById('roleBadge').innerText = userLogin.role.toUpperCase();
-            if(userLogin.role !== 'admin') document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
-            document.getElementById('filterTgl').valueAsDate = new Date();
-        } else alert("Gagal Login!");
-    }
-
-    function showPage(p, el) {
-        document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-        document.getElementById('page-'+p).classList.remove('hidden');
-        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-        el.classList.add('active');
-        if(p === 'laporan') renderLaporan();
-    }
-
-    // --- FITUR MASTER & STOK OPNAME ---
-    function updateStokOpname(index, newStok) {
-        if(newStok === "" || newStok < 0) return;
-        const confirmMsg = `Update stok "${dbBarang[index].nama}" dari ${dbBarang[index].stok} menjadi ${newStok}?`;
-        if(confirm(confirmMsg)) {
-            dbBarang[index].stok = parseInt(newStok);
-            dbCloud.ref('v25_barang').set(dbBarang).then(() => {
-                alert("Stok berhasil diperbarui!");
-            });
-        }
-    }
-
-    function renderMaster() {
-        const b = document.getElementById('bodyMaster'); if(!b) return;
-        const cari = document.getElementById('cariMaster').value.toLowerCase();
-        b.innerHTML = '';
-        dbBarang.forEach((brg, i) => {
-            if(brg.nama.toLowerCase().includes(cari) || brg.kode.toLowerCase().includes(cari)) {
-                b.innerHTML += `<tr>
-                    <td><b>${brg.nama}</b><br><small>${brg.kode}</small></td>
-                    <td>Rp ${brg.harga.toLocaleString()}</td>
-                    <td style="font-weight:bold; color:${brg.stok < 5 ? 'red' : 'black'}">${brg.stok}</td>
-                    <td>
-                        <input type="number" class="opname-inp" placeholder="0" 
-                        onkeypress="if(event.key==='Enter') updateStokOpname(${i}, this.value)">
-                    </td>
-                    <td><button onclick="hapusBarang(${i})" class="btn-d" style="padding:5px 10px"><i class="fas fa-trash"></i></button></td>
-                </tr>`;
-            }
-        });
-    }
-
-    function tambahBarang() {
-        const k=document.getElementById('m_kode'), n=document.getElementById('m_nama'), mod=document.getElementById('m_modal'), h=document.getElementById('m_harga'), s=document.getElementById('m_stok');
-        if(!k.value || !n.value) return alert("Minimal Kode dan Nama terisi!");
-        dbBarang.push({kode:k.value, nama:n.value, modal:parseInt(mod.value)||0, harga:parseInt(h.value)||0, stok:parseInt(s.value)||0});
-        dbCloud.ref('v25_barang').set(dbBarang).then(() => { [k,n,mod,h,s].forEach(i=>i.value=''); k.focus(); });
-    }
-
-    function hapusBarang(i) { if(confirm("Hapus barang dari database?")) { dbBarang.splice(i,1); dbCloud.ref('v25_barang').set(dbBarang); } }
-
-    // --- KASIR & PPOB ---
-    function updatePlaceholderPPOB() {
-        const lay = document.getElementById('p_layanan').value;
-        document.getElementById('fieldToken').className = (lay === 'TOKEN LISTRIK' ? '' : 'hidden');
-        document.getElementById('p_tujuan').placeholder = (lay === 'TOKEN LISTRIK' ? 'ID Pelanggan' : 'Nomor HP');
-    }
-
-    function prosesPPOB() {
-        const lay = document.getElementById('p_layanan').value;
-        const tjn = document.getElementById('p_tujuan').value, nplg = document.getElementById('p_nama_plg').value || '-', nom = document.getElementById('p_nominal').value;
-        const hrg = parseInt(document.getElementById('p_harga').value) || 0, mod = parseInt(document.getElementById('p_modal').value) || 0, sn = document.getElementById('p_sn').value;
-        if(!tjn || !nom || hrg <= 0) return alert("Data tidak valid!");
-
-        const skrg = new Date();
-        lastDataStruk = { lay, tjn, nplg, nom, hrg, sn, tglStr: skrg.toLocaleDateString('id-ID'), jamStr: skrg.getHours().toString().padStart(2,'0')+":"+skrg.getMinutes().toString().padStart(2,'0'), kasir: userLogin.nama };
-
-        dbRiwayat.unshift({ tgl: skrg.toISOString().split('T')[0], jam: lastDataStruk.jamStr, kasir: userLogin.nama, items: `[${lay}] ${nom} - ${tjn}`, total: hrg, profit: hrg - mod });
-        dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => {
-            document.getElementById('lastPPOBText').innerHTML = `<b>Sukses:</b> ${lay} ${nom}`;
-            document.getElementById('btnRePrint').classList.remove('hidden');
-            printStruk();
-            ['p_tujuan','p_nama_plg','p_nominal','p_harga','p_modal','p_sn'].forEach(id => document.getElementById(id).value = '');
-        });
-    }
-
-    function printStruk() {
-        const d = lastDataStruk; if(!d) return;
-        const win = window.open('', '', 'width=400,height=600');
-        win.document.write(`<html><body style="font-family:monospace; width:300px; padding:20px;">
-            <center><strong>IKAMAPUSAT</strong><br>PPOB Digital Struk<br>---</center>
-            <pre>TGL: ${d.tglStr} ${d.jamStr}\nLAYANAN: ${d.lay}\nTUJUAN : ${d.tjn}\nNAMA   : ${d.nplg}\nNOMINAL: ${d.nom}</pre>
-            ${d.lay === 'TOKEN LISTRIK' ? `<center>TOKEN:<br><strong style="font-size:18px;">${d.sn}</strong></center>` : ''}
-            <hr>TOTAL BAYAR: Rp ${d.hrg.toLocaleString()}<hr><center>TERIMA KASIH</center>
-            <script>window.print(); setTimeout(()=>window.close(), 500);<\/script></body></html>`);
-        win.document.close();
-    }
-
-    function handleKasirScan(e) {
-        if(e.key === 'Enter') {
-            const val = document.getElementById('scanKasir').value;
-            const b = dbBarang.find(x => x.kode === val || x.nama.toLowerCase().includes(val.toLowerCase()));
-            if(b) {
-                const ada = keranjang.find(k => k.kode === b.kode);
-                if(ada) ada.qty++; else keranjang.push({...b, qty:1});
-                renderKeranjang();
-            }
-            document.getElementById('scanKasir').value = '';
-        }
-    }
-
-    function renderKeranjang() {
-        const b = document.getElementById('bodyKeranjang'); b.innerHTML = '';
-        let total = 0;
-        keranjang.forEach((k, i) => {
-            let sub = k.qty * k.harga; total += sub;
-            b.innerHTML += `<tr><td>${k.nama}</td><td><input type="number" class="qty-inp" value="${k.qty}" onchange="updateQty(${i}, this.value)"></td><td>${sub.toLocaleString()}</td><td><button onclick="updateQty(${i},0)" class="btn-d" style="padding:2px 6px">X</button></td></tr>`;
-        });
-        document.getElementById('totalBelanja').innerText = "Rp " + total.toLocaleString();
-        hitungKembalian();
-    }
-
-    function updateQty(i, v) { if(v<=0) keranjang.splice(i,1); else keranjang[i].qty=parseInt(v); renderKeranjang(); }
-
-    function hitungKembalian() {
-        const t = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,'')) || 0;
-        const b = parseInt(document.getElementById('uangBayar').value) || 0;
-        document.getElementById('textKembalian').innerText = "Kembali: Rp " + (b-t < 0 ? 0 : b-t).toLocaleString();
-    }
-
-    function prosesTransaksi() {
-        const total = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,''));
-        if(total === 0) return alert("Kosong!");
-        let profit = 0, list = [];
-        keranjang.forEach(item => {
-            profit += (item.qty * (item.harga - item.modal));
-            list.push(`${item.nama}(${item.qty})`);
-            const idx = dbBarang.findIndex(b => b.kode === item.kode);
-            if(idx !== -1) dbBarang[idx].stok -= item.qty;
-        });
-        const skrg = new Date();
-        dbRiwayat.unshift({ tgl: skrg.toISOString().split('T')[0], jam: skrg.getHours().toString().padStart(2,'0')+":"+skrg.getMinutes().toString().padStart(2,'0'), kasir: userLogin.nama, items: list.join(", "), total: total, profit: profit });
-        dbCloud.ref('v25_barang').set(dbBarang);
-        dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => { alert("Berhasil!"); keranjang = []; renderKeranjang(); document.getElementById('uangBayar').value = ''; });
-    }
-
-    function renderLaporan() {
-        const tgl = document.getElementById('filterTgl').value;
-        const b = document.getElementById('bodyLaporan'), f = document.getElementById('footLaporan');
-        b.innerHTML = ''; let tUang = 0, tProfit = 0;
-        dbRiwayat.filter(r => r.tgl === tgl).forEach(r => {
-            tUang += r.total; tProfit += (r.profit || 0);
-            b.innerHTML += `<tr><td>${r.jam}</td><td>${r.kasir}</td><td><small>${r.items}</small></td><td>${r.total.toLocaleString()}</td><td class="adm-only">${(r.profit || 0).toLocaleString()}</td></tr>`;
-        });
-        f.innerHTML = `<tr class="subtotal-row"><td colspan="3" align="right">TOTAL:</td><td>Rp ${tUang.toLocaleString()}</td><td class="adm-only">Rp ${tProfit.toLocaleString()}</td></tr>`;
-        if(userLogin.role !== 'admin') document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
-    }
-
-    function tambahKaryawan() {
-        const n=document.getElementById('k_nama'), u=document.getElementById('k_user'), p=document.getElementById('k_pass');
-        dbUsers.push({nama:n.value, user:u.value, pass:p.value, role:'kasir'});
-        dbCloud.ref('v25_users').set(dbUsers).then(() => { [n,u,p].forEach(i=>i.value=''); });
-    }
-
-    function renderKaryawan() {
-        const b = document.getElementById('bodyKaryawan'); if(!b) return;
-        b.innerHTML = '';
-        dbUsers.forEach((user, i) => {
-            b.innerHTML += `<tr><td>${user.nama}</td><td>${user.user}</td><td>${user.role === 'admin' ? '-' : `<button onclick="hapusUser(${i})" class="btn-d" style="padding:5px">Hapus</button>`}</td></tr>`;
-        });
-    }
-    function hapusUser(i) { if(confirm("Hapus?")) { dbUsers.splice(i,1); dbCloud.ref('v25_users').set(dbUsers); } }
-</script>
-</body>
-</html>
+                        <select id="p_layanan" onchange="updatePlaceholderPPOB()">
+                            <option value="PULSA">PULSA</option>
+                            <option value="TOKEN LISTRIK">TOKEN LISTRIK</option>
+                        </select>
+                        <input type="text" id="p_tujuan" placeholder="Nomor HP">
+                        <input type="text" id="p_sn" placeholder="SN/Token (Khusus Listrik)">
+                        <input type="number" id="p_harga"
