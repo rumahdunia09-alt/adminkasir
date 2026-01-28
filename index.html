@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IKAMAPUSAT - Final System v25.1</title>
+    <title>IKAMAPUSAT - Final System v25.3</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -11,21 +11,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        :root { --p: #007bff; --s: #28a745; --d: #dc3545; --g: #6c757d; --bg: #f4f7f6; }
+        :root { --p: #007bff; --s: #28a745; --d: #dc3545; --g: #6c757d; --bg: #f4f7f6; --dark: #2c3e50; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); min-height: 100vh; }
         
         .navbar { background: #fff; padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .logo-img { height: 40px; vertical-align: middle; margin-right: 10px; }
-        .menu-bar { background: #2c3e50; padding: 10px 25px; display: flex; gap: 10px; overflow-x: auto; }
-        .menu-item { color: #fff; cursor: pointer; padding: 10px 18px; border-radius: 5px; font-size: 13px; white-space: nowrap; transition: 0.3s; }
+        .menu-bar { background: var(--dark); padding: 10px 25px; display: flex; gap: 10px; overflow-x: auto; }
+        .menu-item { color: #fff; cursor: pointer; padding: 10px 18px; border-radius: 5px; font-size: 13px; white-space: nowrap; transition: 0.3s; display: flex; align-items: center; gap: 8px; }
         .menu-item:hover, .menu-item.active { background: var(--p); }
 
         .container { padding: 20px; max-width: 1300px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        input, button, select { padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
-        button { cursor: pointer; background: var(--p); color: white; border: none; font-weight: bold; }
+        input, button, select { padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; font-size: 14px; }
+        button { cursor: pointer; background: var(--p); color: white; border: none; font-weight: bold; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; }
@@ -36,12 +37,16 @@
         .qty-inp { width: 65px !important; padding: 5px !important; text-align: center; font-weight: bold; }
         .subtotal-row { background: #f8f9fa; font-weight: bold; font-size: 14px; }
         .profit-text { color: var(--s); }
+        .badge-ppob { background: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+
+        /* Style Struk (Hidden in Web) */
+        #strukPrint { display: none; }
     </style>
 </head>
 <body>
 
     <div id="loginPage" style="max-width:400px; margin:80px auto; text-align: center;" class="card">
-        <img src="logo.png" style="width:120px; margin-bottom:20px" onerror="this.src='https://via.placeholder.com/120?text=LOGO'">
+        <img src="logo.png" style="width:120px; margin-bottom:20px" onerror="this.src='https://via.placeholder.com/120?text=IKAMA'">
         <h2>IKAMAPUSAT LOGIN</h2>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
@@ -59,6 +64,7 @@
 
         <div class="menu-bar">
             <div class="menu-item active" onclick="showPage('kasir', this)"><i class="fas fa-shopping-cart"></i> Kasir</div>
+            <div class="menu-item" onclick="showPage('ppob', this)"><i class="fas fa-mobile-alt"></i> Pulsa & PPOB</div>
             <div class="menu-item" onclick="showPage('laporan', this)"><i class="fas fa-file-invoice-dollar"></i> Laporan</div>
             <div class="menu-item adm-only" onclick="showPage('master', this)"><i class="fas fa-boxes"></i> Master Barang</div>
             <div class="menu-item adm-only" onclick="showPage('karyawan', this)"><i class="fas fa-users-cog"></i> Karyawan</div>
@@ -66,11 +72,46 @@
         </div>
 
         <div class="container">
-            
+            <div id="page-ppob" class="section hidden">
+                <div class="grid">
+                    <div class="card">
+                        <h3><i class="fas fa-bolt"></i> Transaksi Digital</h3>
+                        <label>Pilih Layanan:</label>
+                        <select id="p_layanan" onchange="updatePlaceholderPPOB()">
+                            <option value="PULSA">PULSA</option>
+                            <option value="TOKEN LISTRIK">TOKEN LISTRIK</option>
+                            <option value="VOUCHER WIFI">VOUCHER WIFI</option>
+                            <option value="KUOTA DATA">KUOTA DATA</option>
+                        </select>
+                        <input type="text" id="p_tujuan" placeholder="Nomor HP">
+                        <input type="text" id="p_nama_plg" placeholder="Nama Pelanggan (Opsional)">
+                        <input type="text" id="p_nominal" placeholder="Nominal (Contoh: 50.000)">
+                        
+                        <div id="fieldToken" class="hidden">
+                            <input type="text" id="p_sn" placeholder="MASUKKAN NOMOR TOKEN (20 Digit)">
+                        </div>
+
+                        <div style="display: flex; gap: 5px;">
+                            <input type="number" id="p_harga" placeholder="Harga Jual (Rp)">
+                            <input type="number" id="p_modal" placeholder="Modal (Rp)">
+                        </div>
+                        <button class="btn-s" style="margin-top:15px" onclick="prosesPPOB()">SIMPAN & CETAK STRUK</button>
+                    </div>
+
+                    <div class="card">
+                        <h3>Review Transaksi</h3>
+                        <div id="lastPPOBBox" style="padding:15px; border-radius:8px; background:#f8f9fa; border-left:4px solid var(--s)">
+                            <p id="lastPPOBText">Belum ada transaksi.</p>
+                            <button id="btnRePrint" class="btn-g hidden" onclick="printStruk()">Cetak Ulang Struk</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="page-kasir" class="section">
                 <div class="grid">
                     <div class="card">
-                        <h3>Penjualan</h3>
+                        <h3>Penjualan Barang</h3>
                         <input type="text" id="scanKasir" placeholder="Scan Barcode / Cari Nama..." onkeypress="handleKasirScan(event)" autofocus>
                         <table>
                             <thead><tr><th>Barang</th><th style="width:80px">Qty</th><th>Subtotal</th><th>#</th></tr></thead>
@@ -87,72 +128,48 @@
                 </div>
             </div>
 
-            <div id="page-master" class="section hidden adm-only">
-                <div class="card" style="border: 2px dashed var(--p); background: #f0f7ff;">
-                    <h3><i class="fas fa-file-excel"></i> Import Excel</h3>
-                    <input type="file" id="inpExcel" accept=".xlsx, .xls">
-                    <button class="btn-s" onclick="importExcel()">Unggah Data</button>
+            <div id="page-laporan" class="section hidden">
+                <div class="card">
+                    <h3>Laporan Pendapatan</h3>
+                    <input type="date" id="filterTgl" onchange="renderLaporan()" style="width: auto;">
+                    <table id="tblLaporan">
+                        <thead>
+                            <tr><th>Jam</th><th>Kasir</th><th>Item</th><th>Total</th><th class="adm-only">Profit</th></tr>
+                        </thead>
+                        <tbody id="bodyLaporan"></tbody>
+                        <tfoot id="footLaporan"></tfoot>
+                    </table>
                 </div>
-                <div class="grid">
-                    <div class="card">
-                        <h3>Tambah Manual</h3>
+            </div>
+
+            <div id="page-master" class="section hidden adm-only">
+                <div class="card">
+                    <h3>Tambah/Update Barang</h3>
+                    <div class="grid">
                         <input type="text" id="m_kode" placeholder="Barcode">
                         <input type="text" id="m_nama" placeholder="Nama">
                         <input type="number" id="m_modal" placeholder="Modal">
                         <input type="number" id="m_harga" placeholder="Jual">
                         <input type="number" id="m_stok" placeholder="Stok">
-                        <button class="btn-s" onclick="tambahBarang()">SIMPAN</button>
                     </div>
-                    <div class="card">
-                        <h3>Stok Barang</h3>
-                        <table id="tblMaster">
-                            <thead><tr><th>Nama</th><th>Harga</th><th>Stok</th><th>Aksi</th></tr></thead>
-                            <tbody id="bodyMaster"></tbody>
-                        </table>
-                    </div>
+                    <button class="btn-s" onclick="tambahBarang()">SIMPAN BARANG</button>
+                    <table style="margin-top: 20px;">
+                        <thead><tr><th>Nama</th><th>Harga</th><th>Stok</th><th>Aksi</th></tr></thead>
+                        <tbody id="bodyMaster"></tbody>
+                    </table>
                 </div>
             </div>
 
             <div id="page-karyawan" class="section hidden adm-only">
-                <div class="grid">
-                    <div class="card">
-                        <h3>Input Kasir Baru</h3>
-                        <input type="text" id="k_nama" placeholder="Nama Karyawan">
-                        <input type="text" id="k_user" placeholder="Username">
-                        <input type="text" id="k_pass" placeholder="Password">
-                        <button class="btn-s" onclick="tambahKaryawan()">SIMPAN KARYAWAN</button>
-                    </div>
-                    <div class="card">
-                        <h3>Daftar Kasir Aktif</h3>
-                        <table>
-                            <thead><tr><th>Nama</th><th>User</th><th>Aksi</th></tr></thead>
-                            <tbody id="bodyKaryawan"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-laporan" class="section hidden">
                 <div class="card">
-                    <h3>Laporan Pendapatan</h3>
-                    <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap: wrap;">
-                        <input type="date" id="filterTgl" onchange="renderLaporan()" style="width: auto;">
-                        <input type="time" id="filterJamMulai" value="00:00" style="width: auto;">
-                        <input type="time" id="filterJamSelesai" value="23:59" style="width: auto;">
-                        <button class="btn-g" onclick="renderLaporan()" style="width: auto;">Filter Waktu</button>
-                    </div>
-                    <table id="tblLaporan">
-                        <thead>
-                            <tr>
-                                <th>Jam</th>
-                                <th>Kasir</th>
-                                <th>Barang Terjual</th>
-                                <th>Total</th>
-                                <th class="adm-only">Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bodyLaporan"></tbody>
-                        <tfoot id="footLaporan"></tfoot>
+                    <h3>Kelola Karyawan</h3>
+                    <input type="text" id="k_nama" placeholder="Nama">
+                    <input type="text" id="k_user" placeholder="User">
+                    <input type="text" id="k_pass" placeholder="Pass">
+                    <button class="btn-s" onclick="tambahKaryawan()">TAMBAH KASIR</button>
+                    <table id="tblKaryawan">
+                        <thead><tr><th>Nama</th><th>User</th><th>Aksi</th></tr></thead>
+                        <tbody id="bodyKaryawan"></tbody>
                     </table>
                 </div>
             </div>
@@ -161,7 +178,7 @@
     </div>
 
 <script>
-    // KONFIGURASI FIREBASE
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyAvJdH3fnfUvupwtRDbSvhBjiY3tIxXnW0",
         authDomain: "kasir-ikamapusat.firebaseapp.com",
@@ -175,9 +192,9 @@
     const dbCloud = firebase.database();
     
     let dbBarang = [], dbRiwayat = [], dbUsers = [], keranjang = [], userLogin = null;
-    document.getElementById('filterTgl').valueAsDate = new Date();
+    let lastDataStruk = null; // Simpan data untuk cetak
 
-    // LISTENERS CLOUD
+    // Sync Data
     dbCloud.ref('v25_barang').on('value', snap => { dbBarang = snap.val() || []; renderMaster(); });
     dbCloud.ref('v25_riwayat').on('value', snap => { dbRiwayat = snap.val() || []; renderLaporan(); });
     dbCloud.ref('v25_users').on('value', snap => { 
@@ -185,7 +202,7 @@
         renderKaryawan();
     });
 
-    // --- FUNGSI LOGIN ---
+    // --- CORE FUNCTIONS ---
     function doLogin() {
         const u = document.getElementById('username').value, p = document.getElementById('password').value;
         const found = dbUsers.find(x => x.user === u && x.pass === p);
@@ -195,10 +212,8 @@
             document.getElementById('appContainer').classList.remove('hidden');
             document.getElementById('displayUser').innerText = userLogin.nama;
             document.getElementById('roleBadge').innerText = userLogin.role.toUpperCase();
-            if(userLogin.role !== 'admin') {
-                document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
-            }
-        } else alert("Username atau Password Salah!");
+            if(userLogin.role !== 'admin') document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
+        } else alert("Gagal Login!");
     }
 
     function showPage(p, el) {
@@ -209,62 +224,112 @@
         if(p === 'laporan') renderLaporan();
     }
 
-    // --- MANAJEMEN KARYAWAN ---
-    function tambahKaryawan() {
-        const n=document.getElementById('k_nama'), u=document.getElementById('k_user'), p=document.getElementById('k_pass');
-        if(!n.value || !u.value || !p.value) return alert("Lengkapi data karyawan!");
-        dbUsers.push({nama:n.value, user:u.value, pass:p.value, role:'kasir'});
-        dbCloud.ref('v25_users').set(dbUsers).then(() => { n.value=''; u.value=''; p.value=''; });
+    // --- PPOB & STRUK ---
+    function updatePlaceholderPPOB() {
+        const lay = document.getElementById('p_layanan').value;
+        const tjn = document.getElementById('p_tujuan');
+        const fToken = document.getElementById('fieldToken');
+        
+        fToken.classList.add('hidden');
+        if(lay === 'TOKEN LISTRIK') {
+            tjn.placeholder = "ID Pelanggan / No. Meter";
+            fToken.classList.remove('hidden');
+        } else {
+            tjn.placeholder = "Nomor HP / Tujuan";
+        }
     }
 
-    function renderKaryawan() {
-        const b = document.getElementById('bodyKaryawan'); if(!b) return;
-        b.innerHTML = '';
-        dbUsers.forEach((user, i) => {
-            b.innerHTML += `<tr><td>${user.nama}</td><td>${user.user}</td>
-            <td>${user.role === 'admin' ? '-' : `<button onclick="hapusUser(${i})" class="btn-d" style="padding:5px">Hapus</button>`}</td></tr>`;
-        });
-    }
+    function prosesPPOB() {
+        const lay = document.getElementById('p_layanan').value;
+        const tjn = document.getElementById('p_tujuan').value;
+        const nplg = document.getElementById('p_nama_plg').value || '-';
+        const nom = document.getElementById('p_nominal').value;
+        const hrg = parseInt(document.getElementById('p_harga').value) || 0;
+        const mod = parseInt(document.getElementById('p_modal').value) || 0;
+        const sn = document.getElementById('p_sn').value;
 
-    function hapusUser(i) { if(confirm("Hapus karyawan ini?")) { dbUsers.splice(i,1); dbCloud.ref('v25_users').set(dbUsers); } }
+        if(!tjn || !nom || hrg <= 0) return alert("Data tidak lengkap!");
+        if(lay === 'TOKEN LISTRIK' && !sn) return alert("Nomor Token (SN) belum diisi!");
 
-    // --- MANAJEMEN BARANG & EXCEL ---
-    function importExcel() {
-        const file = document.getElementById('inpExcel').files[0];
-        if(!file) return alert("Pilih file excel!");
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const data = new Uint8Array(e.target.result);
-            const wb = XLSX.read(data, {type:'array'});
-            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            rows.forEach(r => {
-                const k = r.Kode || Object.values(r)[0];
-                const n = r.Nama || Object.values(r)[1];
-                if(k && n) dbBarang.push({kode:String(k), nama:String(n), modal:parseInt(r.Modal)||0, harga:parseInt(r.Harga||r.Jual)||0, stok:parseInt(r.Stok)||0});
-            });
-            dbCloud.ref('v25_barang').set(dbBarang).then(() => alert("Data Berhasil Diimpor!"));
+        const skrg = new Date();
+        const tglStr = skrg.toLocaleDateString('id-ID');
+        const jamStr = skrg.getHours().toString().padStart(2,'0')+":"+skrg.getMinutes().toString().padStart(2,'0');
+
+        lastDataStruk = { lay, tjn, nplg, nom, hrg, sn, tglStr, jamStr, kasir: userLogin.nama };
+
+        const trx = {
+            tgl: skrg.toISOString().split('T')[0],
+            jam: jamStr,
+            kasir: userLogin.nama,
+            items: `[${lay}] ${nom} - ${tjn}`,
+            total: hrg,
+            profit: hrg - mod
         };
-        reader.readAsArrayBuffer(file);
-    }
 
-    function tambahBarang() {
-        const k=document.getElementById('m_kode'), n=document.getElementById('m_nama'), mod=document.getElementById('m_modal'), h=document.getElementById('m_harga'), s=document.getElementById('m_stok');
-        if(!k.value || !n.value) return alert("Kode dan Nama wajib diisi!");
-        dbBarang.push({kode:k.value, nama:n.value, modal:parseInt(mod.value)||0, harga:parseInt(h.value)||0, stok:parseInt(s.value)||0});
-        dbCloud.ref('v25_barang').set(dbBarang).then(() => { [k,n,mod,h,s].forEach(i=>i.value=''); k.focus(); });
-    }
-
-    function renderMaster() {
-        const b = document.getElementById('bodyMaster'); if(!b) return;
-        b.innerHTML = '';
-        dbBarang.forEach((brg, i) => {
-            b.innerHTML += `<tr><td>${brg.nama}</td><td>${brg.harga.toLocaleString()}</td><td>${brg.stok}</td>
-            <td><button onclick="hapusBarang(${i})" class="btn-d" style="padding:5px">X</button></td></tr>`;
+        dbRiwayat.unshift(trx);
+        dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => {
+            document.getElementById('lastPPOBText').innerHTML = `<b>BERHASIL:</b> ${lay} ${nom} ke ${tjn}`;
+            document.getElementById('btnRePrint').classList.remove('hidden');
+            printStruk(); // Panggil fungsi cetak
+            
+            // Reset fields
+            ['p_tujuan','p_nama_plg','p_nominal','p_harga','p_modal','p_sn'].forEach(id => document.getElementById(id).value = '');
         });
     }
-    function hapusBarang(i) { if(confirm("Hapus barang?")) { dbBarang.splice(i,1); dbCloud.ref('v25_barang').set(dbBarang); } }
 
-    // --- KASIR & PEMBAYARAN ---
+    function printStruk() {
+        const d = lastDataStruk;
+        if(!d) return;
+
+        const win = window.open('', '', 'width=400,height=600');
+        win.document.write(`
+            <html>
+            <head>
+                <style>
+                    body { font-family: monospace; padding: 20px; width: 300px; }
+                    .center { text-align: center; }
+                    .line { border-bottom: 1px dashed #000; margin: 10px 0; }
+                    .token { font-size: 18px; font-weight: bold; border: 1px solid #000; padding: 10px; display: block; margin: 10px 0; letter-spacing: 2px; }
+                </style>
+            </head>
+            <body>
+                <div class="center">
+                    <strong style="font-size:16px;">IKAMAPUSAT</strong><br>
+                    STRUK PEMBAYARAN TAGIHAN<br>
+                    ---------------------------
+                </div>
+                <pre>
+TANGGAL : ${d.tglStr} ${d.jamStr}
+KASIR   : ${d.kasir}
+LAYANAN : ${d.lay}
+TUJUAN  : ${d.tjn}
+NAMA    : ${d.nplg}
+NOMINAL : ${d.nom}
+                </pre>
+                <div class="line"></div>
+                ${d.lay === 'TOKEN LISTRIK' ? `
+                <div class="center">
+                    STROOM/TOKEN:
+                    <div class="token">${d.sn}</div>
+                </div>` : ''}
+                <div class="line"></div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span>TOTAL BAYAR:</span>
+                    <strong>Rp ${d.hrg.toLocaleString()}</strong>
+                </div>
+                <div class="line"></div>
+                <div class="center" style="font-size:10px;">
+                    TERIMA KASIH<br>
+                    Simpan struk ini sebagai bukti pembayaran sah.
+                </div>
+                <script>window.print(); setTimeout(() => window.close(), 500);<\/script>
+            </body>
+            </html>
+        `);
+        win.document.close();
+    }
+
+    // --- KASIR BARANG ---
     function handleKasirScan(e) {
         if(e.key === 'Enter') {
             const val = document.getElementById('scanKasir').value;
@@ -301,85 +366,71 @@
 
     function prosesTransaksi() {
         const total = parseInt(document.getElementById('totalBelanja').innerText.replace(/\D/g,''));
-        if(total === 0) return alert("Keranjang kosong!");
-        
-        let profit = 0;
-        let listBarang = [];
-
+        if(total === 0) return alert("Kosong!");
+        let profit = 0; let list = [];
         keranjang.forEach(item => {
             profit += (item.qty * (item.harga - item.modal));
-            listBarang.push(`${item.nama} (${item.qty})`);
-            
+            list.push(`${item.nama}(${item.qty})`);
             const idx = dbBarang.findIndex(b => b.kode === item.kode);
             if(idx !== -1) dbBarang[idx].stok -= item.qty;
         });
-
-        const sekarang = new Date();
-        const jamStr = sekarang.getHours().toString().padStart(2,'0')+":"+sekarang.getMinutes().toString().padStart(2,'0');
-        
+        const skrg = new Date();
         dbRiwayat.unshift({
-            tgl: sekarang.toISOString().split('T')[0],
-            jam: jamStr,
-            waktu: sekarang.toLocaleString('id-ID'),
-            kasir: userLogin.nama,
-            items: listBarang.join(", "),
-            total: total,
-            profit: profit
+            tgl: skrg.toISOString().split('T')[0],
+            jam: skrg.getHours().toString().padStart(2,'0')+":"+skrg.getMinutes().toString().padStart(2,'0'),
+            kasir: userLogin.nama, items: list.join(", "), total: total, profit: profit
         });
-
         dbCloud.ref('v25_barang').set(dbBarang);
         dbCloud.ref('v25_riwayat').set(dbRiwayat).then(() => {
-            alert("Transaksi Berhasil!"); 
-            keranjang = []; 
-            renderKeranjang();
+            alert("Berhasil!"); keranjang = []; renderKeranjang();
             document.getElementById('uangBayar').value = '';
         });
     }
 
-    // --- LAPORAN DENGAN SUBTOTAL ---
+    // --- REPORT & MASTER ---
     function renderLaporan() {
         const tgl = document.getElementById('filterTgl').value;
-        const mulai = document.getElementById('filterJamMulai').value;
-        const selesai = document.getElementById('filterJamSelesai').value;
-        const b = document.getElementById('bodyLaporan');
-        const f = document.getElementById('footLaporan');
-        
-        b.innerHTML = '';
-        let totalUang = 0;
-        let totalProfit = 0;
-
-        const filtered = dbRiwayat.filter(r => r.tgl === tgl && r.jam >= mulai && r.jam <= selesai);
-
-        filtered.forEach(r => {
-            totalUang += r.total;
-            totalProfit += (r.profit || 0);
-            
-            b.innerHTML += `<tr>
-                <td>${r.jam}</td>
-                <td>${r.kasir}</td>
-                <td style="max-width:250px; font-size:11px; color:#666">${r.items || '-'}</td>
-                <td>${r.total.toLocaleString()}</td>
-                <td class="adm-only">${(r.profit || 0).toLocaleString()}</td>
-            </tr>`;
+        const b = document.getElementById('bodyLaporan'); const f = document.getElementById('footLaporan');
+        b.innerHTML = ''; let tUang = 0, tProfit = 0;
+        dbRiwayat.filter(r => r.tgl === tgl).forEach(r => {
+            tUang += r.total; tProfit += (r.profit || 0);
+            b.innerHTML += `<tr><td>${r.jam}</td><td>${r.kasir}</td><td>${r.items}</td><td>${r.total.toLocaleString()}</td><td class="adm-only">${(r.profit || 0).toLocaleString()}</td></tr>`;
         });
-
-        // Tampilkan Subtotal di Footer Tabel
-        f.innerHTML = `
-            <tr class="subtotal-row">
-                <td colspan="3" style="text-align:right">TOTAL PENDAPATAN:</td>
-                <td colspan="2">Rp ${totalUang.toLocaleString()}</td>
-            </tr>
-            <tr class="subtotal-row adm-only profit-text">
-                <td colspan="3" style="text-align:right">TOTAL PROFIT:</td>
-                <td colspan="2">Rp ${totalProfit.toLocaleString()}</td>
-            </tr>
-        `;
-
-        // Pastikan kolom adm-only tetap tersembunyi jika bukan admin
-        if(userLogin && userLogin.role !== 'admin') {
-            document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
-        }
+        f.innerHTML = `<tr class="subtotal-row"><td colspan="3" align="right">TOTAL:</td><td>Rp ${tUang.toLocaleString()}</td><td class="adm-only">Rp ${tProfit.toLocaleString()}</td></tr>`;
+        if(userLogin && userLogin.role !== 'admin') document.querySelectorAll('.adm-only').forEach(e => e.classList.add('hidden'));
     }
+
+    function tambahBarang() {
+        const k=document.getElementById('m_kode'), n=document.getElementById('m_nama'), mod=document.getElementById('m_modal'), h=document.getElementById('m_harga'), s=document.getElementById('m_stok');
+        dbBarang.push({kode:k.value, nama:n.value, modal:parseInt(mod.value)||0, harga:parseInt(h.value)||0, stok:parseInt(s.value)||0});
+        dbCloud.ref('v25_barang').set(dbBarang).then(() => { [k,n,mod,h,s].forEach(i=>i.value=''); });
+    }
+
+    function renderMaster() {
+        const b = document.getElementById('bodyMaster'); if(!b) return;
+        b.innerHTML = '';
+        dbBarang.forEach((brg, i) => {
+            b.innerHTML += `<tr><td>${brg.nama}</td><td>${brg.harga.toLocaleString()}</td><td>${brg.stok}</td>
+            <td><button onclick="hapusBarang(${i})" class="btn-d" style="padding:5px">X</button></td></tr>`;
+        });
+    }
+    function hapusBarang(i) { if(confirm("Hapus?")) { dbBarang.splice(i,1); dbCloud.ref('v25_barang').set(dbBarang); } }
+
+    function tambahKaryawan() {
+        const n=document.getElementById('k_nama'), u=document.getElementById('k_user'), p=document.getElementById('k_pass');
+        dbUsers.push({nama:n.value, user:u.value, pass:p.value, role:'kasir'});
+        dbCloud.ref('v25_users').set(dbUsers).then(() => { [n,u,p].forEach(i=>i.value=''); });
+    }
+
+    function renderKaryawan() {
+        const b = document.getElementById('bodyKaryawan'); if(!b) return;
+        b.innerHTML = '';
+        dbUsers.forEach((user, i) => {
+            b.innerHTML += `<tr><td>${user.nama}</td><td>${user.user}</td>
+            <td>${user.role === 'admin' ? '-' : `<button onclick="hapusUser(${i})" class="btn-d" style="padding:5px">Hapus</button>`}</td></tr>`;
+        });
+    }
+    function hapusUser(i) { if(confirm("Hapus?")) { dbUsers.splice(i,1); dbCloud.ref('v25_users').set(dbUsers); } }
 </script>
 </body>
 </html>
