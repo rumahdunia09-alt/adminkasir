@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IKAMAPUSAT v26.0 - Professional POS</title>
+    <title>IKAMAPUSAT v26.1 - Professional POS</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -12,14 +12,15 @@
 
     <style>
         :root { --p: #007bff; --s: #28a745; --d: #dc3545; --dark: #2c3e50; --bg: #f4f7f6; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); overflow-x: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
         
-        /* Login Overlay */
+        /* Login Page */
         #loginOverlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; padding: 30px; border-radius: 15px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         
         .navbar { background: white; padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .menu-bar { background: var(--dark); padding: 5px 20px; display: flex; gap: 5px; overflow-x: auto; }
-        .menu-item { color: #fff; cursor: pointer; padding: 12px 18px; border-radius: 5px; font-size: 13px; white-space: nowrap; }
+        .menu-item { color: #fff; cursor: pointer; padding: 12px 18px; border-radius: 5px; font-size: 13px; white-space: nowrap; transition: 0.3s; }
         .menu-item.active { background: var(--p); }
         
         .container { padding: 20px; max-width: 1400px; margin: auto; }
@@ -30,9 +31,9 @@
         
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-        th { background: #f8f9fa; }
+        th { background: #f8f9fa; color: #666; }
 
-        input { padding: 10px; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
+        input, select { padding: 10px; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
         .btn { border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; }
         .btn-p { background: var(--p); } .btn-s { background: var(--s); } .btn-d { background: var(--d); }
         .hidden { display: none !important; }
@@ -41,38 +42,39 @@
 <body>
 
     <div id="loginOverlay">
-        <div class="card" style="width: 350px; text-align: center;">
-            <h2 style="color: var(--p)">IKAMAPUSAT v26</h2>
-            <p>Silakan Masuk</p>
-            <input type="text" id="userIn" placeholder="Username Kasir" style="margin-bottom: 10px;">
-            <input type="password" id="passIn" placeholder="Password" style="margin-bottom: 15px;">
+        <div class="login-card">
+            <h2 style="color: var(--p); margin-top:0">IKAMAPUSAT</h2>
+            <p style="color: #666; font-size: 14px;">Aplikasi Kasir & Inventori</p>
+            <input type="text" id="userIn" placeholder="Username" style="margin-bottom: 10px;">
+            <input type="password" id="passIn" placeholder="Password" style="margin-bottom: 20px;">
             <button class="btn btn-p" style="width: 100%" onclick="handleLogin()">MASUK</button>
+            <p style="font-size: 10px; color: #999; margin-top: 15px;">Admin: admin (123) | Kasir: bebas (kasir)</p>
         </div>
     </div>
 
     <div id="mainApp" class="hidden">
         <div class="navbar">
-            <h3 style="margin:0">IKAMA <span style="color:var(--p)">v26.0</span></h3>
+            <h3 style="margin:0">IKAMA <span style="font-size:12px; background:#eee; padding:2px 8px; border-radius:10px">v26.1</span></h3>
             <div id="curUser" style="font-weight: bold; color: var(--p);"></div>
         </div>
 
         <div class="menu-bar">
-            <div class="menu-item active" onclick="showP('kasir', this)">KASIR</div>
-            <div id="adminMenu" class="hidden" style="display: contents;">
-                <div class="menu-item" onclick="showP('laporan', this)">LAPORAN</div>
-                <div class="menu-item" onclick="showP('opname', this)">STOK OPNAME</div>
-                <div class="menu-item" onclick="showP('master', this)">DATABASE</div>
+            <div class="menu-item active" onclick="showP('kasir', this)"><i class="fas fa-cash-register"></i> KASIR</div>
+            <div id="adminMenu" style="display: none;">
+                <div class="menu-item" onclick="showP('laporan', this)"><i class="fas fa-chart-line"></i> LAPORAN</div>
+                <div class="menu-item" onclick="showP('opname', this)"><i class="fas fa-boxes"></i> STOK OPNAME</div>
+                <div class="menu-item" onclick="showP('master', this)"><i class="fas fa-database"></i> DATABASE</div>
             </div>
-            <div class="menu-item" onclick="location.reload()" style="background: var(--d)">KELUAR</div>
+            <div class="menu-item" onclick="location.reload()" style="background: var(--d); margin-left: auto;">KELUAR</div>
         </div>
 
         <div class="container">
             <div id="p-kasir" class="section">
                 <div style="display:grid; grid-template-columns: 1.8fr 1fr; gap:20px">
                     <div class="card">
-                        <input type="text" id="scanIn" placeholder="Scan Barcode Satuan Apapun..." style="font-size: 20px; border: 2px solid var(--p);" onkeypress="checkScan(event)">
+                        <input type="text" id="scanIn" placeholder="Scan Barcode / Ketik Nama..." style="font-size: 20px; border: 2px solid var(--p);" onkeypress="checkScan(event)" autofocus>
                         <table style="margin-top: 20px;">
-                            <thead><tr><th>Produk</th><th>Unit</th><th>Harga</th><th>Qty</th><th>Subtotal</th><th>#</th></tr></thead>
+                            <thead><tr><th>Produk</th><th>Unit</th><th>Harga</th><th width="80">Qty</th><th>Subtotal</th><th>#</th></tr></thead>
                             <tbody id="cartBody"></tbody>
                         </table>
                     </div>
@@ -80,10 +82,10 @@
                         <p style="margin:0">Total Tagihan:</p>
                         <h1 id="totalTagihan" style="font-size: 50px; margin: 0; color: var(--p);">Rp 0</h1>
                         <hr>
-                        <label>Diterima (Tunai):</label>
+                        <label>Tunai Diterima:</label>
                         <input type="number" id="bayarTunai" style="font-size: 25px; text-align: right; margin: 10px 0;" oninput="calcChange()">
-                        <h2 id="kembalian" style="color: var(--d);">Kembali: Rp 0</h2>
-                        <button class="btn btn-s" style="width: 100%; padding: 20px; font-size: 20px;" onclick="doCheckout()">PROSES TRANSAKSI</button>
+                        <h2 id="kembalian" style="color: var(--d); margin-top:0">Kembali: Rp 0</h2>
+                        <button class="btn btn-s" style="width: 100%; padding: 20px; font-size: 20px;" onclick="doCheckout()">PROSES BAYAR</button>
                     </div>
                 </div>
             </div>
@@ -91,22 +93,19 @@
             <div id="p-laporan" class="section hidden">
                 <div class="grid-stats">
                     <div class="stat-box" style="background: var(--p);">
-                        <small>Total Omset (Hari Ini)</small>
-                        <h2 id="omsetHari">Rp 0</h2>
+                        <small>Omset Hari Ini</small><h2 id="omsetHari">Rp 0</h2>
                     </div>
                     <div class="stat-box" style="background: var(--s);">
-                        <small>Total Profit (Hari Ini)</small>
-                        <h2 id="profitHari">Rp 0</h2>
+                        <small>Profit Hari Ini</small><h2 id="profitHari">Rp 0</h2>
                     </div>
                     <div class="stat-box" style="background: var(--dark);">
-                        <small>Transaksi</small>
-                        <h2 id="countTrx">0</h2>
+                        <small>Total Transaksi</small><h2 id="countTrx">0</h2>
                     </div>
                 </div>
                 <div class="card">
-                    <h3>History Penjualan</h3>
-                    <table id="histTable">
-                        <thead><tr><th>Waktu</th><th>Kasir</th><th>Detail Item</th><th>Total</th><th>Profit</th></tr></thead>
+                    <h3>Riwayat Penjualan</h3>
+                    <table>
+                        <thead><tr><th>Jam</th><th>Kasir</th><th>Items</th><th>Total</th><th>Profit</th></tr></thead>
                         <tbody id="histBody"></tbody>
                     </table>
                 </div>
@@ -114,9 +113,9 @@
 
             <div id="p-opname" class="section hidden">
                 <div class="card">
-                    <h3><i class="fas fa-edit"></i> Stok Opname (Penyesuaian Barang)</h3>
-                    <input type="text" id="cariOpname" placeholder="Cari nama barang untuk disesuaikan..." oninput="renderOpname()">
-                    <table style="margin-top:15px">
+                    <h3>Update Stok Fisik</h3>
+                    <input type="text" id="cariOpname" placeholder="Cari nama barang..." oninput="renderOpname()" style="margin-bottom:15px">
+                    <table>
                         <thead><tr><th>Nama Barang</th><th>Stok Sistem</th><th>Stok Fisik Baru</th><th>Aksi</th></tr></thead>
                         <tbody id="opnameBody"></tbody>
                     </table>
@@ -125,17 +124,19 @@
 
             <div id="p-master" class="section hidden">
                 <div class="card">
-                    <h3>Import & Export</h3>
-                    <button class="btn btn-p" onclick="downloadTemplate()">Download Template</button>
-                    <input type="file" id="xlIn" accept=".xlsx" style="width: auto;">
-                    <button class="btn btn-s" onclick="importExcel()">Upload Data</button>
+                    <h3>Database Tools</h3>
+                    <button class="btn btn-p" onclick="downloadTemplate()"><i class="fas fa-download"></i> Download Template</button>
+                    <div style="margin-top:15px; border: 1px dashed #ccc; padding: 15px; border-radius: 8px;">
+                        <label>Upload Excel:</label>
+                        <input type="file" id="xlIn" accept=".xlsx" style="margin: 10px 0;">
+                        <button class="btn btn-s" onclick="importExcel()">Update Database</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
 <script>
-    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyAvJdH3fnfUvupwtRDbSvhBjiY3tIxXnW0",
         databaseURL: "https://kasir-ikamapusat-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -145,49 +146,55 @@
 
     let dbBarang = [], cart = [], history = [], curUser = "";
 
-    // Sync Data
+    // Sinkronisasi Realtime
     db.ref('v26_master').on('value', s => { dbBarang = s.val() || []; renderOpname(); });
     db.ref('v26_trx').on('value', s => { history = s.val() || []; renderLaporan(); });
 
     // --- LOGIN ---
     function handleLogin() {
-        const u = document.getElementById('userIn').value;
-        const p = document.getElementById('passIn').value;
+        const u = document.getElementById('userIn').value.trim();
+        const p = document.getElementById('passIn').value.trim();
         
-        if(u === "admin" && p === "123") {
+        if (u === "" || p === "") return alert("Isi Username/Password!");
+
+        if (u.toLowerCase() === "admin" && p === "123") {
             curUser = "ADMIN";
-            document.getElementById('adminMenu').classList.remove('hidden');
-        } else if(u !== "" && p === "kasir") {
+            document.getElementById('adminMenu').style.display = 'contents';
+            lanjutMasuk();
+        } else if (p === "kasir") {
             curUser = u.toUpperCase();
+            document.getElementById('adminMenu').style.display = 'none';
+            lanjutMasuk();
         } else {
-            return alert("Login Gagal!");
+            alert("Login Gagal! Password salah.");
         }
-        
-        document.getElementById('loginOverlay').classList.add('hidden');
+    }
+
+    function lanjutMasuk() {
+        document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').classList.remove('hidden');
-        document.getElementById('curUser').innerText = "KASIR: " + curUser;
+        document.getElementById('curUser').innerText = "USER: " + curUser;
     }
 
     function showP(p, el) {
         document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
         document.getElementById('p-'+p).classList.remove('hidden');
         document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-        el.classList.add('active');
+        if(el) el.classList.add('active');
     }
 
-    // --- KASIR LOGIC ---
+    // --- KASIR ---
     function checkScan(e) {
         if(e.key === 'Enter') {
             const v = e.target.value;
             let found = null, lv = 1;
-            
             dbBarang.forEach(b => {
                 if(b.u1.bar === v) { found=b; lv=1; }
                 else if(b.u2.bar === v) { found=b; lv=2; }
                 else if(b.u3.bar === v) { found=b; lv=3; }
                 else if(b.u4.bar === v) { found=b; lv=4; }
+                else if(b.nama.toLowerCase().includes(v.toLowerCase())) { found=b; lv=1; }
             });
-
             if(found) {
                 const u = found['u'+lv];
                 cart.push({ id: found.kode, nama: found.nama, unit: u.name, harga: u.jual, modal: found.hpp, konv: u.konv, qty: 1 });
@@ -202,13 +209,16 @@
         let total = 0;
         cart.forEach((c, i) => {
             let sub = c.harga * c.qty; total += sub;
-            b.innerHTML += `<tr><td>${c.nama}</td><td>${c.unit}</td><td>${c.harga.toLocaleString()}</td><td>${c.qty}</td><td>${sub.toLocaleString()}</td><td onclick="cart.splice(${i},1);renderCart()" style="color:red; cursor:pointer">✖</td></tr>`;
+            b.innerHTML += `<tr><td>${c.nama}</td><td>${c.unit}</td><td>${c.harga.toLocaleString()}</td><td><input type="number" value="${c.qty}" onchange="updateQty(${i},this.value)" style="width:60px"></td><td>${sub.toLocaleString()}</td><td onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer">✖</td></tr>`;
         });
         document.getElementById('totalTagihan').innerText = "Rp " + total.toLocaleString();
+        calcChange();
     }
 
+    function updateQty(i,v) { cart[i].qty = parseInt(v); renderCart(); }
+
     function calcChange() {
-        const t = parseInt(document.getElementById('totalTagihan').innerText.replace(/\D/g,''));
+        const t = parseInt(document.getElementById('totalTagihan').innerText.replace(/\D/g,'')) || 0;
         const b = parseInt(document.getElementById('bayarTunai').value) || 0;
         document.getElementById('kembalian').innerText = "Kembali: Rp " + (b - t).toLocaleString();
     }
@@ -217,101 +227,82 @@
         if(cart.length === 0) return;
         const t = parseInt(document.getElementById('totalTagihan').innerText.replace(/\D/g,''));
         const b = parseInt(document.getElementById('bayarTunai').value) || 0;
-        if(b < t) return alert("Uang tidak cukup!");
+        if(b < t) return alert("Uang kurang!");
 
-        let profit = 0, items = [];
+        let profit = 0, itemNames = [];
         cart.forEach(c => {
             profit += (c.harga - (c.modal * c.konv)) * c.qty;
-            items.push(`${c.nama} (${c.qty} ${c.unit})`);
-            const idx = dbBarang.findIndex(db => db.kode === c.id);
+            itemNames.push(`${c.nama} (${c.qty} ${c.unit})`);
+            const idx = dbBarang.findIndex(x => x.kode === c.id);
             if(idx !== -1) dbBarang[idx].stok -= (c.qty * c.konv);
         });
 
-        const trx = {
-            tgl: new Date().toLocaleDateString('id-ID'),
-            jam: new Date().toLocaleTimeString(),
-            user: curUser,
-            items: items.join(", "),
-            total: t,
-            profit: profit
-        };
-
+        const trx = { tgl: new Date().toLocaleDateString('id-ID'), jam: new Date().toLocaleTimeString(), user: curUser, items: itemNames.join(", "), total: t, profit: profit };
         db.ref('v26_trx').set([trx, ...history]);
         db.ref('v26_master').set(dbBarang).then(() => {
-            alert("Transaksi Sukses!");
-            cart = []; renderCart();
-            document.getElementById('bayarTunai').value = '';
-            document.getElementById('kembalian').innerText = "Kembali: Rp 0";
+            alert("Berhasil!"); cart = []; renderCart(); document.getElementById('bayarTunai').value = '';
         });
     }
 
-    // --- LAPORAN LOGIC ---
+    // --- LAPORAN ---
     function renderLaporan() {
         const b = document.getElementById('histBody'); b.innerHTML = '';
-        const tglSkrg = new Date().toLocaleDateString('id-ID');
+        const today = new Date().toLocaleDateString('id-ID');
         let omset = 0, profit = 0;
-
         history.forEach(h => {
-            if(h.tgl === tglSkrg) {
+            if(h.tgl === today) {
                 omset += h.total; profit += h.profit;
                 b.innerHTML += `<tr><td>${h.jam}</td><td>${h.user}</td><td><small>${h.items}</small></td><td>${h.total.toLocaleString()}</td><td>${h.profit.toLocaleString()}</td></tr>`;
             }
         });
         document.getElementById('omsetHari').innerText = "Rp " + omset.toLocaleString();
         document.getElementById('profitHari').innerText = "Rp " + profit.toLocaleString();
-        document.getElementById('countTrx').innerText = history.filter(x => x.tgl === tglSkrg).length;
+        document.getElementById('countTrx').innerText = history.filter(x => x.tgl === today).length;
     }
 
-    // --- STOK OPNAME LOGIC ---
+    // --- STOK OPNAME ---
     function renderOpname() {
         const b = document.getElementById('opnameBody'); b.innerHTML = '';
         const cari = document.getElementById('cariOpname').value.toLowerCase();
         dbBarang.forEach((x, i) => {
             if(x.nama.toLowerCase().includes(cari)) {
-                b.innerHTML += `<tr>
-                    <td>${x.nama}</td>
-                    <td><b>${x.stok}</b></td>
-                    <td><input type="number" id="newStok-${i}" placeholder="Input fisik..."></td>
-                    <td><button class="btn btn-p" onclick="updateStok(${i})">Update</button></td>
-                </tr>`;
+                b.innerHTML += `<tr><td>${x.nama}</td><td>${x.stok}</td><td><input type="number" id="sop-${i}" style="width:100px"></td><td><button class="btn btn-p" onclick="upStok(${i})">Simpan</button></td></tr>`;
             }
         });
     }
 
-    function updateStok(i) {
-        const newVal = document.getElementById('newStok-'+i).value;
-        if(newVal === "") return alert("Isi stok fisik!");
-        dbBarang[i].stok = parseInt(newVal);
-        db.ref('v26_master').set(dbBarang).then(() => alert("Stok " + dbBarang[i].nama + " disesuaikan."));
+    function upStok(i) {
+        const v = document.getElementById('sop-'+i).value;
+        if(v==="") return;
+        dbBarang[i].stok = parseInt(v);
+        db.ref('v26_master').set(dbBarang).then(() => alert("Stok Diupdate!"));
     }
 
-    // --- IMPORT/EXPORT (Keep Previous Logic) ---
+    // --- IMPORT/TEMPLATE ---
     function downloadTemplate() {
-        const header = [["KODE ITEM", "NAMA ITEM", "STOK AWAL SATUAN DASAR", "HARGA POKOK SATUAN 1", "SATUAN 1", "BARCODE SATUAN 1", "HARGA JUAL SATUAN 1", "SATUAN 2", "BARCODE SATUAN 2", "KONVERSI SATUAN 2", "HARGA JUAL SATUAN 2", "SATUAN 3", "BARCODE SATUAN 3", "KONVERSI I SATUAN 3", "HARGA JUAL SATUAN 3", "SATUAN 4", "BARCODE SATUAN 4", "KONVERSI SATUAN 4", "HARGA JUAL SATUAN 4"]];
-        const ws = XLSX.utils.aoa_to_sheet(header);
-        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "T");
-        XLSX.writeFile(wb, "Template_IKAMA.xlsx");
+        const h = [["KODE ITEM", "NAMA ITEM", "STOK AWAL SATUAN DASAR", "HARGA POKOK SATUAN 1", "SATUAN 1", "BARCODE SATUAN 1", "HARGA JUAL SATUAN 1", "SATUAN 2", "BARCODE SATUAN 2", "KONVERSI SATUAN 2", "HARGA JUAL SATUAN 2", "SATUAN 3", "BARCODE SATUAN 3", "KONVERSI I SATUAN 3", "HARGA JUAL SATUAN 3", "SATUAN 4", "BARCODE SATUAN 4", "KONVERSI SATUAN 4", "HARGA JUAL SATUAN 4"]];
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(h), "T");
+        XLSX.writeFile(wb, "Template_IKAMA_v26.1.xlsx");
     }
 
     function importExcel() {
-        const file = document.getElementById('xlIn').files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
+        const f = document.getElementById('xlIn').files[0];
+        const r = new FileReader();
+        r.onload = (e) => {
             const data = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), {type:'array'}).Sheets["T"]);
             let fix = [];
             data.forEach(r => {
                 if(r["NAMA ITEM"]) fix.push({
-                    kode: String(r["KODE ITEM"] || r["BARCODE SATUAN 1"]), nama: r["NAMA ITEM"],
-                    stok: parseInt(r["STOK AWAL SATUAN DASAR"]) || 0, hpp: parseInt(r["HARGA POKOK SATUAN 1"]) || 0,
+                    kode: String(r["KODE ITEM"] || r["BARCODE SATUAN 1"]), nama: r["NAMA ITEM"], stok: parseInt(r["STOK AWAL SATUAN DASAR"]) || 0, hpp: parseInt(r["HARGA POKOK SATUAN 1"]) || 0,
                     u1: { name: r["SATUAN 1"]||"PCS", bar: String(r["BARCODE SATUAN 1"]||""), jual: parseInt(r["HARGA JUAL SATUAN 1"])||0, konv: 1 },
                     u2: { name: r["SATUAN 2"]||"", bar: String(r["BARCODE SATUAN 2"]||""), jual: parseInt(r["HARGA JUAL SATUAN 2"])||0, konv: parseInt(r["KONVERSI SATUAN 2"])||0 },
                     u3: { name: r["SATUAN 3"]||"", bar: String(r["BARCODE SATUAN 3"]||""), jual: parseInt(r["HARGA JUAL SATUAN 3"])||0, konv: parseInt(r["KONVERSI I SATUAN 3"])||0 },
                     u4: { name: r["SATUAN 4"]||"", bar: String(r["BARCODE SATUAN 4"]||""), jual: parseInt(r["HARGA JUAL SATUAN 4"])||0, konv: parseInt(r["KONVERSI SATUAN 4"])||0 }
                 });
             });
-            db.ref('v26_master').set(fix).then(() => alert("Berhasil Sinkron!"));
+            db.ref('v26_master').set(fix).then(() => alert("Import Berhasil!"));
         };
-        reader.readAsArrayBuffer(file);
+        r.readAsArrayBuffer(f);
     }
 </script>
 </body>
