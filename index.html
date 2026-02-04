@@ -14,9 +14,8 @@
         :root { --p: #007bff; --s: #28a745; --d: #dc3545; --dark: #2c3e50; --bg: #f4f7f6; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); }
         
-        /* Login Page */
-        #loginOverlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: white; padding: 30px; border-radius: 15px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        #loginOverlay { position: fixed; inset: 0; background: var(--dark); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; padding: 30px; border-radius: 15px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); position: relative; }
         
         .navbar { background: white; padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .menu-bar { background: var(--dark); padding: 5px 20px; display: flex; gap: 5px; overflow-x: auto; }
@@ -45,8 +44,13 @@
         <div class="login-card">
             <h2 style="color: var(--p); margin-top:0">IKAMAPUSAT</h2>
             <p style="color: #666; font-size: 14px;">Aplikasi Kasir & Inventori</p>
-            <input type="text" id="userIn" placeholder="Username" style="margin-bottom: 10px;">
-            <input type="password" id="passIn" placeholder="Password" style="margin-bottom: 20px;">
+            <input type="text" id="userIn" placeholder="Username" style="margin-bottom: 10px;" autocomplete="off">
+            <input type="password" id="passIn" placeholder="Password" style="margin-bottom: 15px;">
+            
+            <div style="text-align: left; margin-bottom: 15px; font-size: 13px; color: #555;">
+                <input type="checkbox" id="rememberMe" style="width: auto; cursor: pointer;"> Tetap Login
+            </div>
+
             <button class="btn btn-p" style="width: 100%" onclick="handleLogin()">MASUK</button>
             <p style="font-size: 10px; color: #999; margin-top: 15px;">Admin: admin (123) | Kasir: bebas (kasir)</p>
         </div>
@@ -65,7 +69,7 @@
                 <div class="menu-item" onclick="showP('opname', this)"><i class="fas fa-boxes"></i> STOK OPNAME</div>
                 <div class="menu-item" onclick="showP('master', this)"><i class="fas fa-database"></i> DATABASE</div>
             </div>
-            <div class="menu-item" onclick="location.reload()" style="background: var(--d); margin-left: auto;">KELUAR</div>
+            <div class="menu-item" onclick="logout()" style="background: var(--d); margin-left: auto;">KELUAR</div>
         </div>
 
         <div class="container">
@@ -137,6 +141,7 @@
     </div>
 
 <script>
+    // KONFIGURASI FIREBASE
     const firebaseConfig = {
         apiKey: "AIzaSyAvJdH3fnfUvupwtRDbSvhBjiY3tIxXnW0",
         databaseURL: "https://kasir-ikamapusat-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -150,30 +155,60 @@
     db.ref('v26_master').on('value', s => { dbBarang = s.val() || []; renderOpname(); });
     db.ref('v26_trx').on('value', s => { history = s.val() || []; renderLaporan(); });
 
-    // --- LOGIN ---
+    // --- SISTEM LOGIN (AUTO-CHECK) ---
+    window.onload = function() {
+        const savedUser = localStorage.getItem('ikamapusat_user');
+        const savedRole = localStorage.getItem('ikamapusat_role');
+        
+        if (savedUser && savedRole) {
+            curUser = savedUser;
+            if (savedRole === 'ADMIN') {
+                document.getElementById('adminMenu').style.display = 'contents';
+            }
+            lanjutMasuk();
+        } else {
+            document.getElementById('userIn').focus();
+        }
+    };
+
     function handleLogin() {
         const u = document.getElementById('userIn').value.trim();
         const p = document.getElementById('passIn').value.trim();
+        const remember = document.getElementById('rememberMe').checked;
         
-        if (u === "" || p === "") return alert("Isi Username/Password!");
+        if (u === "" || p === "") return alert("Isi Username dan Password!");
 
+        let role = "";
         if (u.toLowerCase() === "admin" && p === "123") {
             curUser = "ADMIN";
+            role = "ADMIN";
             document.getElementById('adminMenu').style.display = 'contents';
-            lanjutMasuk();
         } else if (p === "kasir") {
             curUser = u.toUpperCase();
+            role = "KASIR";
             document.getElementById('adminMenu').style.display = 'none';
-            lanjutMasuk();
         } else {
-            alert("Login Gagal! Password salah.");
+            return alert("Login Gagal! Password salah.");
         }
+
+        if (remember) {
+            localStorage.setItem('ikamapusat_user', curUser);
+            localStorage.setItem('ikamapusat_role', role);
+        }
+        lanjutMasuk();
     }
 
     function lanjutMasuk() {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').classList.remove('hidden');
         document.getElementById('curUser').innerText = "USER: " + curUser;
+        setTimeout(() => document.getElementById('scanIn').focus(), 500);
+    }
+
+    function logout() {
+        localStorage.removeItem('ikamapusat_user');
+        localStorage.removeItem('ikamapusat_role');
+        location.reload();
     }
 
     function showP(p, el) {
@@ -187,18 +222,21 @@
     function checkScan(e) {
         if(e.key === 'Enter') {
             const v = e.target.value;
+            if(!v) return;
             let found = null, lv = 1;
             dbBarang.forEach(b => {
-                if(b.u1.bar === v) { found=b; lv=1; }
-                else if(b.u2.bar === v) { found=b; lv=2; }
-                else if(b.u3.bar === v) { found=b; lv=3; }
-                else if(b.u4.bar === v) { found=b; lv=4; }
+                if(b.u1 && b.u1.bar === v) { found=b; lv=1; }
+                else if(b.u2 && b.u2.bar === v) { found=b; lv=2; }
+                else if(b.u3 && b.u3.bar === v) { found=b; lv=3; }
+                else if(b.u4 && b.u4.bar === v) { found=b; lv=4; }
                 else if(b.nama.toLowerCase().includes(v.toLowerCase())) { found=b; lv=1; }
             });
             if(found) {
                 const u = found['u'+lv];
                 cart.push({ id: found.kode, nama: found.nama, unit: u.name, harga: u.jual, modal: found.hpp, konv: u.konv, qty: 1 });
                 renderCart();
+            } else {
+                alert("Barang tidak ditemukan!");
             }
             e.target.value = '';
         }
@@ -215,7 +253,7 @@
         calcChange();
     }
 
-    function updateQty(i,v) { cart[i].qty = parseInt(v); renderCart(); }
+    function updateQty(i,v) { cart[i].qty = parseInt(v) || 1; renderCart(); }
 
     function calcChange() {
         const t = parseInt(document.getElementById('totalTagihan').innerText.replace(/\D/g,'')) || 0;
@@ -240,7 +278,10 @@
         const trx = { tgl: new Date().toLocaleDateString('id-ID'), jam: new Date().toLocaleTimeString(), user: curUser, items: itemNames.join(", "), total: t, profit: profit };
         db.ref('v26_trx').set([trx, ...history]);
         db.ref('v26_master').set(dbBarang).then(() => {
-            alert("Berhasil!"); cart = []; renderCart(); document.getElementById('bayarTunai').value = '';
+            alert("Transaksi Berhasil!"); 
+            cart = []; 
+            renderCart(); 
+            document.getElementById('bayarTunai').value = '';
         });
     }
 
@@ -287,13 +328,17 @@
 
     function importExcel() {
         const f = document.getElementById('xlIn').files[0];
+        if(!f) return alert("Pilih file!");
         const r = new FileReader();
         r.onload = (e) => {
             const data = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), {type:'array'}).Sheets["T"]);
             let fix = [];
             data.forEach(r => {
                 if(r["NAMA ITEM"]) fix.push({
-                    kode: String(r["KODE ITEM"] || r["BARCODE SATUAN 1"]), nama: r["NAMA ITEM"], stok: parseInt(r["STOK AWAL SATUAN DASAR"]) || 0, hpp: parseInt(r["HARGA POKOK SATUAN 1"]) || 0,
+                    kode: String(r["KODE ITEM"] || r["BARCODE SATUAN 1"] || Date.now()), 
+                    nama: r["NAMA ITEM"], 
+                    stok: parseInt(r["STOK AWAL SATUAN DASAR"]) || 0, 
+                    hpp: parseInt(r["HARGA POKOK SATUAN 1"]) || 0,
                     u1: { name: r["SATUAN 1"]||"PCS", bar: String(r["BARCODE SATUAN 1"]||""), jual: parseInt(r["HARGA JUAL SATUAN 1"])||0, konv: 1 },
                     u2: { name: r["SATUAN 2"]||"", bar: String(r["BARCODE SATUAN 2"]||""), jual: parseInt(r["HARGA JUAL SATUAN 2"])||0, konv: parseInt(r["KONVERSI SATUAN 2"])||0 },
                     u3: { name: r["SATUAN 3"]||"", bar: String(r["BARCODE SATUAN 3"]||""), jual: parseInt(r["HARGA JUAL SATUAN 3"])||0, konv: parseInt(r["KONVERSI I SATUAN 3"])||0 },
