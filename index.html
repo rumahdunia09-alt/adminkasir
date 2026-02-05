@@ -1,141 +1,223 @@
 <!DOCTYPE html>
-
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<title>Laporan Transaksi (Refactor Aman)</title>
-<style>
-body{font-family:Arial;margin:20px;background:#f6f6f6}
-.card{background:#fff;padding:16px;border-radius:8px;margin-bottom:20px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}
-th{background:#eee}
-tr:hover{background:#f1f1f1}
-button{padding:6px 10px;border:none;border-radius:6px;cursor:pointer}
-.btn-detail{background:#3498db;color:#fff}
-.btn-close{background:#e74c3c;color:#fff}
-.hidden{display:none}
-#popupDetail{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
-#popupBox{background:#fff;padding:20px;width:600px;max-height:90vh;overflow:auto;border-radius:10px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Laporan Transaksi</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+            --light: #f6f6f6;
+        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: var(--light); color: #333; }
+        
+        /* LOGIN STYLES */
+        #loginPage {
+            display: flex; align-items: center; justify-content: center; height: 100vh;
+        }
+        .login-card {
+            background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%; max-width: 350px; text-align: center;
+        }
+        .login-card input {
+            width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
+        }
+        .btn-login { background: var(--primary); color: white; width: 100%; padding: 12px; font-weight: bold; margin-top: 10px; }
+
+        /* DASHBOARD STYLES */
+        header {
+            background: var(--dark); color: white; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .container { padding: 20px; max-width: 1000px; margin: auto; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #fafafa; color: #666; text-transform: uppercase; font-size: 12px; }
+        
+        button { border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        button:hover { opacity: 0.8; }
+        .btn-detail { background: var(--primary); color: #fff; padding: 6px 12px; }
+        .btn-logout { background: var(--danger); color: white; padding: 8px 15px; }
+
+        .hidden { display: none !important; }
+        
+        /* POPUP */
+        #popupDetail {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100;
+        }
+        #popupBox { background: #fff; padding: 25px; width: 90%; max-width: 600px; border-radius: 12px; position: relative; }
+    </style>
 </head>
 <body>
 
-<div class="card">
-<h2>Laporan Transaksi</h2>
-<table>
-<thead>
-<tr><th>Waktu</th><th>Kasir</th><th>Total</th><th>Aksi</th></tr>
-</thead>
-<tbody id="bodyLaporan"></tbody>
-</table>
+<div id="loginPage">
+    <div class="login-card">
+        <h2>Panel Admin</h2>
+        <p>Silahkan login untuk akses laporan</p>
+        <input type="text" id="username" placeholder="Username (admin)">
+        <input type="password" id="password" placeholder="Password (123)">
+        <button class="btn-login" onclick="handleLogin()">MASUK</button>
+        <p id="loginError" style="color:red; font-size:13px; margin-top:10px;" class="hidden">Username atau password salah!</p>
+    </div>
 </div>
 
-<div class="card">
-<h2>Laporan Per Kasir</h2>
-<table>
-<thead><tr><th>Kasir</th><th>Transaksi</th><th>Item</th><th>Omzet</th></tr></thead>
-<tbody id="bodyKasir"></tbody>
-</table>
-</div>
+<div id="dashboardPage" class="hidden">
+    <header>
+        <div style="font-weight: bold; font-size: 18px;">POS System</div>
+        <div>
+            <span id="userDisplay" style="margin-right: 15px;"></span>
+            <button class="btn-logout" onclick="handleLogout()">Keluar</button>
+        </div>
+    </header>
 
-<div class="card">
-<h2>Barang Terlaris</h2>
-<table>
-<thead><tr><th>Barang</th><th>Qty</th><th>Omzet</th></tr></thead>
-<tbody id="bodyTerlaris"></tbody>
-</table>
-</div>
+    <div class="container">
+        <div class="card">
+            <h2>Laporan Transaksi</h2>
+            <table>
+                <thead>
+                    <tr><th>Waktu</th><th>Kasir</th><th>Total</th><th>Aksi</th></tr>
+                </thead>
+                <tbody id="bodyLaporan"></tbody>
+            </table>
+        </div>
 
-<!-- POPUP DETAIL -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card">
+                <h3>Per Kasir</h3>
+                <table>
+                    <thead><tr><th>Kasir</th><th>Trx</th><th>Omzet</th></tr></thead>
+                    <tbody id="bodyKasir"></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3>Barang Terlaris</h3>
+                <table>
+                    <thead><tr><th>Barang</th><th>Qty</th><th>Omzet</th></tr></thead>
+                    <tbody id="bodyTerlaris"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div id="popupDetail" class="hidden">
-  <div id="popupBox">
-    <div id="popupIsi"></div>
-    <div style="text-align:right;margin-top:10px">
-      <button class="btn-close" onclick="tutupPopup()">Keluar</button>
+    <div id="popupBox">
+        <div id="popupIsi"></div>
+        <div style="text-align:right; margin-top:20px">
+            <button class="btn-logout" onclick="tutupPopup()">Tutup</button>
+        </div>
     </div>
-  </div>
 </div>
 
 <script>
-// ===== DATA CONTOH (GANTI DENGAN FIREBASE) =====
-const dbRiwayat=[
-{waktu:'2026-02-06 10:00',kasir:'Ani',total:15000,items:[{nama:'Kopi',qty:1,harga:15000,subtotal:15000}]},
-{waktu:'2026-02-06 10:10',kasir:'Budi',total:30000,items:[{nama:'Teh',qty:2,harga:5000,subtotal:10000},{nama:'Roti',qty:2,harga:10000,subtotal:20000}]}
+// ===== DATA & LOGIC =====
+const dbRiwayat = [
+    {waktu:'2026-02-06 10:00', kasir:'Ani', total:15000, items:[{nama:'Kopi', qty:1, harga:15000, subtotal:15000}]},
+    {waktu:'2026-02-06 10:10', kasir:'Budi', total:30000, items:[{nama:'Teh', qty:2, harga:5000, subtotal:10000}, {nama:'Roti', qty:2, harga:10000, subtotal:20000}]}
 ];
 
-// ===== RENDER LAPORAN UTAMA =====
-function renderLaporan(){
-  const body=document.getElementById('bodyLaporan');
-  body.innerHTML='';
-  dbRiwayat.forEach((r,i)=>{
-    body.innerHTML+=`
-      <tr>
-        <td>${r.waktu}</td>
-        <td>${r.kasir}</td>
-        <td>Rp ${r.total.toLocaleString()}</td>
-        <td><button class="btn-detail" onclick="bukaDetail(${i})">Detail</button></td>
-      </tr>`;
-  });
-  renderPerKasir();
-  renderTerlaris();
+// Cek status login saat halaman dimuat
+window.onload = function() {
+    const user = sessionStorage.getItem("isLoggedIn");
+    if (user) {
+        showDashboard(user);
+    }
+};
+
+function handleLogin() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+
+    // Contoh validasi sederhana
+    if (user === "admin" && pass === "123") {
+        sessionStorage.setItem("isLoggedIn", user);
+        showDashboard(user);
+    } else {
+        document.getElementById('loginError').classList.remove('hidden');
+    }
 }
 
-// ===== DETAIL TRANSAKSI =====
-function bukaDetail(i){
-  const r=dbRiwayat[i];
-  document.getElementById('popupIsi').innerHTML=`
-    <h3>Detail Transaksi</h3>
-    <p><b>Waktu:</b> ${r.waktu}</p>
-    <p><b>Kasir:</b> ${r.kasir}</p>
-    <table>
-      <tr><th>Barang</th><th>Qty</th><th>Harga</th><th>Subtotal</th></tr>
-      ${r.items.map(it=>`
-        <tr><td>${it.nama}</td><td>${it.qty}</td><td>${it.harga.toLocaleString()}</td><td>${it.subtotal.toLocaleString()}</td></tr>
-      `).join('')}
-    </table>
-    <h3 style="text-align:right">Total: Rp ${r.total.toLocaleString()}</h3>`;
-  document.getElementById('popupDetail').classList.remove('hidden');
+function handleLogout() {
+    sessionStorage.removeItem("isLoggedIn");
+    location.reload(); // Refresh halaman untuk kembali ke login
 }
 
-function tutupPopup(){
-  document.getElementById('popupDetail').classList.add('hidden');
+function showDashboard(username) {
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('dashboardPage').classList.remove('hidden');
+    document.getElementById('userDisplay').innerText = "Halo, " + username;
+    renderLaporan();
 }
 
-// ===== LAPORAN PER KASIR =====
-function renderPerKasir(){
-  const map={};
-  dbRiwayat.forEach(r=>{
-    if(!map[r.kasir]) map[r.kasir]={trx:0,item:0,omzet:0};
-    map[r.kasir].trx++;
-    map[r.kasir].omzet+=r.total;
-    r.items.forEach(i=>map[r.kasir].item+=i.qty);
-  });
-  const body=document.getElementById('bodyKasir');
-  body.innerHTML='';
-  Object.keys(map).forEach(k=>{
-    const v=map[k];
-    body.innerHTML+=`<tr><td>${k}</td><td>${v.trx}</td><td>${v.item}</td><td>Rp ${v.omzet.toLocaleString()}</td></tr>`;
-  });
+// ===== RENDER DATA =====
+function renderLaporan() {
+    const body = document.getElementById('bodyLaporan');
+    body.innerHTML = '';
+    dbRiwayat.forEach((r, i) => {
+        body.innerHTML += `
+            <tr>
+                <td>${r.waktu}</td>
+                <td>${r.kasir}</td>
+                <td>Rp ${r.total.toLocaleString()}</td>
+                <td><button class="btn-detail" onclick="bukaDetail(${i})">Detail</button></td>
+            </tr>`;
+    });
+    renderPerKasir();
+    renderTerlaris();
 }
 
-// ===== BARANG TERLARIS =====
-function renderTerlaris(){
-  const map={};
-  dbRiwayat.forEach(r=>r.items.forEach(i=>{
-    if(!map[i.nama]) map[i.nama]={qty:0,omzet:0};
-    map[i.nama].qty+=i.qty;
-    map[i.nama].omzet+=i.subtotal;
-  }));
-  const body=document.getElementById('bodyTerlaris');
-  body.innerHTML='';
-  Object.entries(map).sort((a,b)=>b[1].qty-a[1].qty).forEach(([n,v])=>{
-    body.innerHTML+=`<tr><td>${n}</td><td>${v.qty}</td><td>Rp ${v.omzet.toLocaleString()}</td></tr>`;
-  });
+function bukaDetail(i) {
+    const r = dbRiwayat[i];
+    document.getElementById('popupIsi').innerHTML = `
+        <h3 style="margin-top:0">Detail Transaksi</h3>
+        <p><b>Waktu:</b> ${r.waktu} | <b>Kasir:</b> ${r.kasir}</p>
+        <hr>
+        <table>
+            <tr><th>Barang</th><th>Qty</th><th>Subtotal</th></tr>
+            ${r.items.map(it => `
+                <tr><td>${it.nama}</td><td>${it.qty}</td><td>${it.subtotal.toLocaleString()}</td></tr>
+            `).join('')}
+        </table>
+        <h3 style="text-align:right; color:var(--primary)">Total: Rp ${r.total.toLocaleString()}</h3>`;
+    document.getElementById('popupDetail').classList.remove('hidden');
 }
 
-renderLaporan();
+function tutupPopup() {
+    document.getElementById('popupDetail').classList.add('hidden');
+}
+
+function renderPerKasir() {
+    const map = {};
+    dbRiwayat.forEach(r => {
+        if(!map[r.kasir]) map[r.kasir] = {trx:0, omzet:0};
+        map[r.kasir].trx++;
+        map[r.kasir].omzet += r.total;
+    });
+    const body = document.getElementById('bodyKasir');
+    body.innerHTML = Object.keys(map).map(k => `
+        <tr><td>${k}</td><td>${map[k].trx}</td><td>Rp ${map[k].omzet.toLocaleString()}</td></tr>
+    `).join('');
+}
+
+function renderTerlaris() {
+    const map = {};
+    dbRiwayat.forEach(r => r.items.forEach(i => {
+        if(!map[i.nama]) map[i.nama] = {qty:0, omzet:0};
+        map[i.nama].qty += i.qty;
+        map[i.nama].omzet += i.subtotal;
+    }));
+    const body = document.getElementById('bodyTerlaris');
+    body.innerHTML = Object.entries(map)
+        .sort((a,b) => b[1].qty - a[1].qty)
+        .map(([n,v]) => `<tr><td>${n}</td><td>${v.qty}</td><td>Rp ${v.omzet.toLocaleString()}</td></tr>`)
+        .join('');
+}
 </script>
 
 </body>
