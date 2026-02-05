@@ -3,81 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Laporan Transaksi</title>
+    <title>Sistem Laporan Transaksi v2</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
     <style>
         :root {
             --primary: #3498db;
             --danger: #e74c3c;
             --dark: #2c3e50;
             --light: #f6f6f6;
+            --success: #2ecc71;
         }
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: var(--light); color: #333; }
         
         /* LOGIN STYLES */
         #loginPage {
             display: flex; align-items: center; justify-content: center; height: 100vh;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
         }
         .login-card {
-            background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             width: 100%; max-width: 350px; text-align: center;
         }
+        .login-card h2 { margin-bottom: 20px; color: var(--dark); }
         .login-card input {
             width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
         }
-        .btn-login { background: var(--primary); color: white; width: 100%; padding: 12px; font-weight: bold; margin-top: 10px; }
+        .btn-login { background: var(--primary); color: white; width: 100%; padding: 12px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+        .btn-login:hover { background: #2980b9; }
 
         /* DASHBOARD STYLES */
         header {
-            background: var(--dark); color: white; padding: 15px 20px;
+            background: var(--dark); color: white; padding: 15px 30px;
             display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .container { padding: 20px; max-width: 1000px; margin: auto; }
-        .card { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .container { padding: 30px; max-width: 1100px; margin: auto; }
+        .card { background: #fff; padding: 20px; border-radius: 10px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eee; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-        th { background: #fafafa; color: #666; text-transform: uppercase; font-size: 12px; }
+        th { background: #f8f9fa; color: #666; font-size: 13px; text-transform: uppercase; }
         
         button { border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
-        button:hover { opacity: 0.8; }
-        .btn-detail { background: var(--primary); color: #fff; padding: 6px 12px; }
-        .btn-logout { background: var(--danger); color: white; padding: 8px 15px; }
+        .btn-detail { background: var(--primary); color: #fff; padding: 6px 15px; }
+        .btn-logout { background: var(--danger); color: white; padding: 8px 18px; font-weight: 500; }
+        .btn-logout:hover { background: #c0392b; }
 
         .hidden { display: none !important; }
-        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
         /* POPUP */
         #popupDetail {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;
         }
-        #popupBox { background: #fff; padding: 25px; width: 90%; max-width: 600px; border-radius: 12px; position: relative; }
+        #popupBox { background: #fff; padding: 30px; width: 90%; max-width: 650px; border-radius: 15px; position: relative; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
 <div id="loginPage">
     <div class="login-card">
-        <h2>Panel Admin</h2>
-        <p>Silahkan login untuk akses laporan</p>
-        <input type="text" id="username" placeholder="Username (admin)">
-        <input type="password" id="password" placeholder="Password (123)">
+        <h2>POS Laporan</h2>
+        <p style="color: #7f8c8d; font-size: 14px;">Masukkan kredensial Anda</p>
+        <input type="text" id="username" placeholder="Email / Username">
+        <input type="password" id="password" placeholder="Password">
         <button class="btn-login" onclick="handleLogin()">MASUK</button>
-        <p id="loginError" style="color:red; font-size:13px; margin-top:10px;" class="hidden">Username atau password salah!</p>
+        <p id="loginError" style="color:var(--danger); font-size:13px; margin-top:15px;" class="hidden"></p>
+        <p id="bypassNote" style="color:var(--success); font-size:11px; margin-top:10px;">Mode Preview Aktif (Bypass Otomatis)</p>
     </div>
 </div>
 
 <div id="dashboardPage" class="hidden">
     <header>
-        <div style="font-weight: bold; font-size: 18px;">POS System</div>
+        <div style="font-weight: bold; font-size: 20px; letter-spacing: 1px;">MY-REPORT</div>
         <div>
-            <span id="userDisplay" style="margin-right: 15px;"></span>
+            <span id="userDisplay" style="margin-right: 20px; font-size: 14px; opacity: 0.9;"></span>
             <button class="btn-logout" onclick="handleLogout()">Keluar</button>
         </div>
     </header>
 
     <div class="container">
         <div class="card">
-            <h2>Laporan Transaksi</h2>
+            <h2 style="margin-top:0">Laporan Transaksi Terbaru</h2>
             <table>
                 <thead>
                     <tr><th>Waktu</th><th>Kasir</th><th>Total</th><th>Aksi</th></tr>
@@ -86,9 +99,9 @@
             </table>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="grid-2">
             <div class="card">
-                <h3>Per Kasir</h3>
+                <h3>Ringkasan Per Kasir</h3>
                 <table>
                     <thead><tr><th>Kasir</th><th>Trx</th><th>Omzet</th></tr></thead>
                     <tbody id="bodyKasir"></tbody>
@@ -96,7 +109,7 @@
             </div>
 
             <div class="card">
-                <h3>Barang Terlaris</h3>
+                <h3>Produk Terlaris</h3>
                 <table>
                     <thead><tr><th>Barang</th><th>Qty</th><th>Omzet</th></tr></thead>
                     <tbody id="bodyTerlaris"></tbody>
@@ -109,53 +122,85 @@
 <div id="popupDetail" class="hidden">
     <div id="popupBox">
         <div id="popupIsi"></div>
-        <div style="text-align:right; margin-top:20px">
-            <button class="btn-logout" onclick="tutupPopup()">Tutup</button>
+        <div style="text-align:right; margin-top:25px">
+            <button class="btn-logout" style="background:#bdc3c7; color:#333" onclick="tutupPopup()">Tutup Jendela</button>
         </div>
     </div>
 </div>
 
 <script>
-// ===== DATA & LOGIC =====
-const dbRiwayat = [
-    {waktu:'2026-02-06 10:00', kasir:'Ani', total:15000, items:[{nama:'Kopi', qty:1, harga:15000, subtotal:15000}]},
-    {waktu:'2026-02-06 10:10', kasir:'Budi', total:30000, items:[{nama:'Teh', qty:2, harga:5000, subtotal:10000}, {nama:'Roti', qty:2, harga:10000, subtotal:20000}]}
-];
-
-// Cek status login saat halaman dimuat
-window.onload = function() {
-    const user = sessionStorage.getItem("isLoggedIn");
-    if (user) {
-        showDashboard(user);
-    }
+// ===== 1. KONFIGURASI FIREBASE =====
+// Ganti bagian ini dengan konfigurasi dari Firebase Console Anda jika sudah siap
+const firebaseConfig = {
+  apiKey: "AIzaSy_GANTI_INI", 
+  authDomain: "proyek-anda.firebaseapp.com",
+  projectId: "proyek-anda",
+  storageBucket: "proyek-anda.appspot.com",
+  messagingSenderId: "000000000",
+  appId: "1:000:web:000"
 };
 
+const isFirebaseReady = firebaseConfig.apiKey !== "AIzaSy_GANTI_INI";
+
+// Inisialisasi Jika API Key tersedia
+if (isFirebaseReady) {
+    firebase.initializeApp(firebaseConfig);
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) showDashboard(user.email);
+        else showLoginPage();
+    });
+} else {
+    // Mode Bypass (Hanya untuk testing tampilan agar langsung muncul)
+    console.log("Firebase belum diatur. Menggunakan Mode Preview.");
+    document.getElementById('bypassNote').innerText = "Mode Preview: Klik Masuk Tanpa Password";
+}
+
+// ===== 2. LOGIC AUTH =====
 function handleLogin() {
     const user = document.getElementById('username').value;
     const pass = document.getElementById('password').value;
 
-    // Contoh validasi sederhana
-    if (user === "admin" && pass === "123") {
-        sessionStorage.setItem("isLoggedIn", user);
-        showDashboard(user);
-    } else {
-        document.getElementById('loginError').classList.remove('hidden');
+    if (!isFirebaseReady) {
+        // Mode Demo: Apapun inputnya akan masuk
+        showDashboard(user || "Admin Demo");
+        return;
     }
+
+    firebase.auth().signInWithEmailAndPassword(user, pass)
+        .catch(err => {
+            const errEl = document.getElementById('loginError');
+            errEl.innerText = "Error: " + err.message;
+            errEl.classList.remove('hidden');
+        });
 }
 
 function handleLogout() {
-    sessionStorage.removeItem("isLoggedIn");
-    location.reload(); // Refresh halaman untuk kembali ke login
+    if (isFirebaseReady) {
+        firebase.auth().signOut().then(() => location.reload());
+    } else {
+        location.reload();
+    }
 }
 
-function showDashboard(username) {
+// ===== 3. UI & RENDER DATA =====
+const dbRiwayat = [
+    {waktu:'2026-02-06 10:00', kasir:'Ani', total:15000, items:[{nama:'Kopi Arabika', qty:1, harga:15000, subtotal:15000}]},
+    {waktu:'2026-02-06 10:10', kasir:'Budi', total:30000, items:[{nama:'Teh Manis', qty:2, harga:5000, subtotal:10000}, {nama:'Roti Bakar', qty:2, harga:10000, subtotal:20000}]},
+    {waktu:'2026-02-06 11:30', kasir:'Ani', total:50000, items:[{nama:'Kopi Arabika', qty:2, harga:15000, subtotal:30000}, {nama:'Roti Bakar', qty:2, harga:10000, subtotal:20000}]}
+];
+
+function showDashboard(idUser) {
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('dashboardPage').classList.remove('hidden');
-    document.getElementById('userDisplay').innerText = "Halo, " + username;
+    document.getElementById('userDisplay').innerText = "👤 " + idUser;
     renderLaporan();
 }
 
-// ===== RENDER DATA =====
+function showLoginPage() {
+    document.getElementById('loginPage').classList.remove('hidden');
+    document.getElementById('dashboardPage').classList.add('hidden');
+}
+
 function renderLaporan() {
     const body = document.getElementById('bodyLaporan');
     body.innerHTML = '';
@@ -163,7 +208,7 @@ function renderLaporan() {
         body.innerHTML += `
             <tr>
                 <td>${r.waktu}</td>
-                <td>${r.kasir}</td>
+                <td><b>${r.kasir}</b></td>
                 <td>Rp ${r.total.toLocaleString()}</td>
                 <td><button class="btn-detail" onclick="bukaDetail(${i})">Detail</button></td>
             </tr>`;
@@ -175,16 +220,21 @@ function renderLaporan() {
 function bukaDetail(i) {
     const r = dbRiwayat[i];
     document.getElementById('popupIsi').innerHTML = `
-        <h3 style="margin-top:0">Detail Transaksi</h3>
-        <p><b>Waktu:</b> ${r.waktu} | <b>Kasir:</b> ${r.kasir}</p>
-        <hr>
-        <table>
-            <tr><th>Barang</th><th>Qty</th><th>Subtotal</th></tr>
+        <h2 style="margin-top:0; color:var(--primary)">Nota Transaksi</h2>
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:14px">
+            <span>Waktu: ${r.waktu}</span>
+            <span>Kasir: <b>${r.kasir}</b></span>
+        </div>
+        <table style="border-top:2px solid #333">
+            <thead><tr><th>Item</th><th>Qty</th><th>Subtotal</th></tr></thead>
             ${r.items.map(it => `
-                <tr><td>${it.nama}</td><td>${it.qty}</td><td>${it.subtotal.toLocaleString()}</td></tr>
+                <tr><td>${it.nama}</td><td>${it.qty}</td><td>Rp ${it.subtotal.toLocaleString()}</td></tr>
             `).join('')}
         </table>
-        <h3 style="text-align:right; color:var(--primary)">Total: Rp ${r.total.toLocaleString()}</h3>`;
+        <div style="text-align:right; margin-top:20px">
+            <small>Total Pembayaran</small>
+            <h2 style="margin:0; color:var(--dark)">Rp ${r.total.toLocaleString()}</h2>
+        </div>`;
     document.getElementById('popupDetail').classList.remove('hidden');
 }
 
@@ -199,8 +249,7 @@ function renderPerKasir() {
         map[r.kasir].trx++;
         map[r.kasir].omzet += r.total;
     });
-    const body = document.getElementById('bodyKasir');
-    body.innerHTML = Object.keys(map).map(k => `
+    document.getElementById('bodyKasir').innerHTML = Object.keys(map).map(k => `
         <tr><td>${k}</td><td>${map[k].trx}</td><td>Rp ${map[k].omzet.toLocaleString()}</td></tr>
     `).join('');
 }
@@ -212,8 +261,7 @@ function renderTerlaris() {
         map[i.nama].qty += i.qty;
         map[i.nama].omzet += i.subtotal;
     }));
-    const body = document.getElementById('bodyTerlaris');
-    body.innerHTML = Object.entries(map)
+    document.getElementById('bodyTerlaris').innerHTML = Object.entries(map)
         .sort((a,b) => b[1].qty - a[1].qty)
         .map(([n,v]) => `<tr><td>${n}</td><td>${v.qty}</td><td>Rp ${v.omzet.toLocaleString()}</td></tr>`)
         .join('');
